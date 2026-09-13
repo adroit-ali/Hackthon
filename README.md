@@ -1,6 +1,6 @@
-# 🚀 HackOps — AI Hackathon Squad Matcher & 48-Hour Launchpad
+# 🌌 HackOps — Aurora AI Squad Launchpad
 
-> **Transforming messy hackathon bios and project pitches into balanced 4-person dream teams with instant 48-hour execution roadmaps.**
+> **An AI launch tool where hackers simply paste their messy bio or GitHub link, and the system automatically pairs them into a balanced 4-person squad matched to a project idea—then immediately hands them a complete 48-hour plan to build it.**
 
 ---
 
@@ -10,40 +10,13 @@ Solo hackathon participants waste critical opening hours struggling to find comp
 
 ## ⚡ Our Solution
 
-An intelligent AI launch platform where:
-1. **Leaders** pitch their project ideas and target MVP vision.
-2. **Solo Hackers** paste their messy bio or GitHub link, and our NLP engine automatically extracts their primary role, skills, experience level, and superpowers.
-3. The **AI Squad Matcher** pairs participants into balanced 4-person squads (1 Leader + 3 distinct roles: Frontend/UI, AI/Backend, and Product/Pitch).
-4. The system immediately hands the team an actionable **48-Hour Sprint Roadmap & Kanban Board** with assigned deliverables and a demo-day judge checklist.
-
----
-
-## 🌟 Key Features
-
-- **💡 Project Pitch Studio**: Create and explore hackathon project briefs with automated capability breakdown (AI/ML, Frontend, Backend, UI/UX, Pitch).
-- **👥 Hacker Lounge & NLP Bio Parser**: Real-time parsing of unstructured text and GitHub profiles into structured skills and superpowers.
-- **⚡ AI Squad Balancer**: Constraint solver ensuring balanced teams with high synergy, capability coverage scoring (0-100%), and role diversity.
-- **⏱ 48-Hour Launchpad**: 4-phase execution plan (Inception 0-6h, Core MVP 6-24h, Polish 24-38h, Pitch & Submission 38-48h).
-- **🎤 Demo-Day Checklist & Judge Rubric Alignment**: Step-by-step checklist ensuring teams deliver working live demos and pitch effectively.
-- **📥 One-Click Export**: Export full team configurations as JSON or copy sprint roadmaps as Markdown for Discord/Slack.
-
----
-
-## 🖥️ How to Run the Web Application
-
-### Instant Browser Launch
-Simply open `index.html` in any modern web browser:
-
-```bash
-# On Windows
-start index.html
-
-# On macOS
-open index.html
-
-# On Linux
-xdg-open index.html
-```
+An intelligent AI launch platform with an **Aurora UI & Gradient Mesh** aesthetic:
+1. **Parses Messy Bios**: Extracts structured roles, technical skills, experience level, and superpowers from natural language descriptions or GitHub profiles.
+2. **Analyzes Project Needs**: Decomposes submitted hackathon ideas into essential technical and operational capabilities required for a working MVP.
+3. **Vectorizes & Indexes Profiles**: Converts participant profiles into dense semantic embeddings and stores them in a local FAISS index for similarity retrieval.
+4. **Balances the 4-Person Squad**: Combines vector retrieval with complementary role-filtering logic (1 Leader + 3 distinct functional roles) to prevent overlapping stacks.
+5. **Evaluates Team Coverage**: Analyzes collective capability coverage (0–100%), role diversity (0–100%), highlights gaps, and calculates an overall team-fit score.
+6. **Generates a 48-Hour Sprint Roadmap**: Produces a time-boxed execution schedule with individual task ownership, milestone deliverables, and a demo-day preparation checklist.
 
 ---
 
@@ -51,27 +24,94 @@ xdg-open index.html
 
 ```text
 HackOps/
-├── index.html           # Main modern web application interface
-├── style.css            # Cyber-dark design system & glassmorphism styling
-├── app.js               # Core client-side intelligence, matching & sprint engine
-├── app.py               # Streamlit alternative interface
-├── mock_data.py         # Default demo projects & participant pool
-├── profile_parser.py    # Python Groq LLM profile parser
-├── project_analyzer.py  # Python project requirement decomposition
-├── vector_store.py      # FAISS semantic vector search engine
-├── team_matcher.py      # Python team formation optimizer
-├── team_balance.py      # Python capability coverage & diversity scoring
-├── sprint_planner.py    # Python 48-hour sprint roadmap generator
-└── README.md            # Project documentation
+├── .streamlit/
+│   └── config.toml          # Streamlit theme (Aurora dark, cyan/violet accents)
+├── .env.example             # Environment variable template (GROQ_API_KEY)
+├── .gitignore               # Python and environment ignores
+├── requirements.txt         # Minimal, high-compatibility dependencies
+├── prompts.py               # Prompt templates for profile parsing, analysis & sprint plans
+├── profile_parser.py        # Messy bio extraction (Groq + local heuristic fallback)
+├── project_analyzer.py      # Project requirement & capability decomposition
+├── vector_store.py          # Sentence embeddings & FAISS semantic vector search
+├── team_matcher.py          # Complementary 4-person squad optimization solver
+├── team_balance.py          # Capability coverage, role diversity & gap scoring
+├── sprint_planner.py        # 48-hour timeboxed roadmap & demo checklist generator
+├── mock_data.py             # Preloaded hackathon projects & varied candidate pool
+├── utils.py                 # Input validation, profile sanitation & JSON helpers
+├── app.py                   # Main Streamlit app with full Aurora UI / Gradient Mesh
+└── README.md                # Project documentation
 ```
 
 ---
 
-## 🚀 48-Hour Hackathon Execution Phases
+## 🚀 Setup & Local Execution
 
-| Phase | Timebox | Focus & Deliverables |
+### 1. Clone & Setup Virtual Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/hackops.git
+cd hackops
+
+# Create and activate virtual environment
+python -m venv .venv
+
+# On Windows:
+.venv\Scripts\activate
+
+# On macOS/Linux:
+source .venv/bin/activate
+```
+
+### 2. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure Groq API Key (Optional)
+
+Copy `.env.example` to `.env` and add your Groq API key (if omitted, HackOps will run smoothly using its built-in local inference engine):
+
+```bash
+cp .env.example .env
+```
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+### 4. Run the Streamlit Application
+
+```bash
+streamlit run app.py
+```
+
+---
+
+## ☁️ Deploying to Streamlit Cloud
+
+1. Push this repository to your GitHub account:
+   ```bash
+   git add .
+   git commit -m "feat: HackOps Aurora AI Launchpad"
+   git push origin main
+   ```
+2. Navigate to [share.streamlit.io](https://share.streamlit.io) and create a **New app**.
+3. Select your repository and set `app.py` as the **Main file path**.
+4. *(Optional)* Under **Advanced settings > Secrets**, add your Groq key:
+   ```toml
+   GROQ_API_KEY = "your_real_groq_key"
+   ```
+5. Click **Deploy!**
+
+---
+
+## ⏱ 48-Hour Sprint Roadmap Phases
+
+| Phase | Timebox | Focus & Key Deliverables |
 | :--- | :--- | :--- |
-| **Phase 1: Inception & Architecture** | Hours 0 – 6 | Lock MVP scope, Git repo, API schemas & Figma wireframes |
+| **Phase 1: Inception & Architecture** | Hours 0 – 6 | Lock MVP scope, Git repo, API schema contracts & Figma wireframes |
 | **Phase 2: Core MVP Build** | Hours 6 – 24 | Core AI inference, responsive UI screens & live backend endpoints |
 | **Phase 3: Polish & Edge Cases** | Hours 24 – 38 | End-to-end testing, animations, error states & backup demo video |
 | **Phase 4: Pitch & Submission** | Hours 38 – 48 | 3-minute pitch rehearsals, Devpost submission & live judging |
@@ -80,7 +120,7 @@ HackOps/
 
 ## 🏆 Judge Rubric Alignment
 
-1. **Innovation & Technical Depth (30%)**: Clear AI value-add and architectural elegance over trivial wrappers.
-2. **Working Demo Execution (30%)**: Live user interaction flow without relying on static mock screenshots.
-3. **UX & Visual Polish (20%)**: Intuitive glassmorphism interface and responsive feedback loops.
-4. **Presentation & Business Impact (20%)**: Memorable 3-minute pitch answering "Why now?" and realistic viability.
+- **💡 Innovation & Technical Depth (30%)**: Clear AI value-add and architectural elegance over trivial wrappers.
+- **🚀 Working Demo Execution (30%)**: Live user interaction flow without relying on static mock screenshots.
+- **🎨 UX & Visual Polish (20%)**: Intuitive Aurora glassmorphism interface and responsive feedback loops.
+- **🎤 Presentation & Business Impact (20%)**: Memorable 3-minute pitch answering "Why now?" and realistic viability.

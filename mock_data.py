@@ -1,41 +1,51 @@
+"""
+Mock hackathon data for HackOps demo and testing.
+Provides diverse participant profiles across technical and product domains.
+"""
+
 MOCK_PARTICIPANTS = [
     {
-        "name": "Ali",
-        "bio": "I am a CS student focused on Python, machine learning, LLM applications and FastAPI. I have built small AI assistants and APIs. I like working on the AI side of hackathon projects."
+        "name": "Ali Raza",
+        "bio": "I am a CS student focused on Python, machine learning, LLM prompt pipelines, LangChain, and FastAPI backends. Built several AI assistants and REST APIs. I love handling the AI logic and model integration in hackathons.",
+        "github": "https://github.com/aliraza-ai"
     },
     {
-        "name": "Sara",
-        "bio": "Frontend developer who loves React, JavaScript, TypeScript and responsive interfaces. I have built dashboards and web apps and enjoy turning ideas into simple user experiences."
+        "name": "Sara Chen",
+        "bio": "Frontend developer who loves React, Next.js, TypeScript, Tailwind CSS, and glassmorphic modern UI design. I have built multiple interactive dashboards and enjoy turning ideas into smooth user experiences.",
+        "github": "https://github.com/sarachen-ui"
     },
     {
-        "name": "Ahmed",
-        "bio": "Backend engineer comfortable with Python, FastAPI, REST APIs, PostgreSQL and authentication. I enjoy connecting services and making reliable application backends."
+        "name": "Ahmed Farooq",
+        "bio": "Backend engineer comfortable with Python, FastAPI, PostgreSQL, Redis, Docker, and REST API architecture. I enjoy connecting services, handling database schemas, and making reliable backends.",
+        "github": "https://github.com/ahmed-backend"
     },
     {
-        "name": "Hina",
-        "bio": "Product and UI/UX designer with Figma experience. I can design user flows, wireframes and polished interfaces. I also enjoy presentations and explaining products to judges."
+        "name": "Hina Malik",
+        "bio": "Product and UI/UX designer with Figma mastery. I design user journeys, wireframes, and presentation decks. I also excel at pitching to judges, storytelling, and structuring demo day scripts.",
+        "github": "https://github.com/hinamalik"
     },
     {
-        "name": "Usman",
-        "bio": "Data science student with Python, pandas, data analysis and basic ML. I have some experience cleaning datasets and evaluating models."
+        "name": "Usman Ghani",
+        "bio": "Data science student experienced in Python, pandas, scikit-learn, vector embeddings, and RAG search. Comfortable cleaning messy datasets and evaluating model accuracy.",
+        "github": "https://github.com/usman-data"
     },
     {
-        "name": "Zara",
-        "bio": "Junior full-stack developer. I know React, Node.js, databases and deployment basics. I like integration work and debugging."
+        "name": "Zara Khan",
+        "bio": "Full-stack developer with React, Node.js, Express, and PostgreSQL experience. I like full-stack integration work, state management, and quick debugging under time pressure.",
+        "github": "https://github.com/zarakhan-dev"
     },
     {
-        "name": "Hamza",
-        "bio": "Cloud and DevOps learner. Comfortable with Git, Docker, Linux and deploying small web applications. I can help teams get an MVP online quickly."
+        "name": "Hamza Tariq",
+        "bio": "Cloud and DevOps engineer. Comfortable with Docker, GitHub Actions, Linux, cloud hosting, and deploying web applications within minutes to ensure zero downtime during judging.",
+        "github": "https://github.com/hamzatariq-ops"
     },
     {
-        "name": "Ayesha",
-        "bio": "Technical writer and researcher interested in AI products. I am good at research, documentation, user stories and demo scripts, with some Python knowledge."
-    },
+        "name": "Ayesha Noor",
+        "bio": "Technical writer and product researcher. Skilled in creating interactive demo scripts, API docs, system architecture diagrams, and communicating complex technical value to non-technical judges.",
+        "github": "https://github.com/ayeshanoor"
+    }
 ]
 
 MOCK_PROJECT = """
-Build an AI-powered resume assistant for students. A user uploads a resume and pastes
-a job description. The application should compare the resume against the job, identify
-matching and missing skills, suggest ATS keywords and recommendations, and provide a
-simple score. The MVP should be easy to demo in a hackathon.
+Build an AI-powered resume and interview copilot for students. A user uploads a resume PDF and pastes a target job description. The platform semantically compares the resume against the job requirements, identifies missing ATS keywords, highlights technical skill gaps, provides a match percentage score, and automatically drafts custom interview talking points. The MVP should have a responsive web interface and be ready for live demo day.
 """

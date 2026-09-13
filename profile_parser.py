@@ -1,48 +1,77 @@
-from typing import Dict
+"""
+Profile parser module.
+Extracts structured roles, skills, experience level, and superpowers from messy bios or GitHub links.
+"""
 
-from prompts import PROFILE_PROMPT
-from utils import extract_json_object, get_groq_client, groq_json_completion
+import re
+from typing import Any, Dict
+from prompts import PARSE_PROFILE_PROMPT
+from utils import call_groq_llm
+
+SKILL_TAXONOMY = {
+    "AI / ML Engineer": ["ai", "machine learning", "ml", "llm", "langchain", "prompt", "nlp", "pytorch", "tensorflow", "vector", "rag", "embeddings"],
+    "Frontend Developer": ["frontend", "react", "next.js", "vue", "javascript", "typescript", "tailwind", "html", "css", "svelte", "ui"],
+    "Backend Engineer": ["backend", "python", "fastapi", "flask", "node", "express", "django", "rest", "api", "postgresql", "sql", "redis", "mongodb"],
+    "UI/UX Designer": ["ui/ux", "figma", "wireframe", "prototype", "design", "user journey", "canva", "product design"],
+    "DevOps Engineer": ["docker", "kubernetes", "cloud", "aws", "gcp", "azure", "ci/cd", "git", "linux", "devops", "deployment"],
+    "Product / Pitch Lead": ["pitch", "presentation", "demo", "deck", "product management", "storytelling", "research", "technical writer"]
+}
 
 
-MODEL = "openai/gpt-oss-120b"
+def heuristic_parse_bio(name: str, bio: str, github: str = "") -> Dict[str, Any]:
+    """Fallback rule-based NLP extraction when Groq API key is not configured."""
+    text = (bio + " " + github).lower()
+    detected_skills = []
+    role_scores = {role: 0 for role in SKILL_TAXONOMY}
+
+    for role, kws in SKILL_TAXONOMY.items():
+        for kw in kws:
+            if re.search(r"\b" + re.escape(kw) + r"\b", text):
+                if kw.title() not in detected_skills:
+                    detected_skills.append(kw.title())
+                role_scores[role] += 1
+
+    best_role = max(role_scores, key=role_scores.get) if any(role_scores.values()) else "Full-stack Developer"
+    
+    exp = "intermediate"
+    if re.search(r"\b(senior|lead|years|advanced|expert|architect)\b", text):
+        exp = "advanced"
+    elif re.search(r"\b(beginner|junior|student|learner|new to)\b", text):
+        exp = "beginner"
+
+    superpowers = {
+        "Frontend Developer": "Rapid visual component implementation & micro-interactions",
+        "Backend Engineer": "High-reliability REST endpoints & database schema design",
+        "AI / ML Engineer": "LLM prompt optimization, RAG search & model integration",
+        "UI/UX Designer": "Polished user journeys & high-converting judge pitch decks",
+        "DevOps Engineer": "Zero-downtime containerization & live cloud deployment",
+        "Product / Pitch Lead": "Crystal-clear demo storytelling & judge rubric alignment"
+    }
+
+    return {
+        "name": name.strip() or "Hackathon Contender",
+        "primary_role": best_role,
+        "skills": detected_skills[:8] if detected_skills else ["Python", "JavaScript", "Problem Solving", "Rapid Prototyping"],
+        "experience_level": exp,
+        "superpower": superpowers.get(best_role, "Cross-functional feature implementation"),
+        "summary": bio.strip() or "Hackathon participant eager to build impactful MVPs."
+    }
 
 
-def parse_participant(participant: Dict) -> Dict:
-    """Parse one participant bio into a structured profile."""
-    name = participant.get("name", "Unknown Participant")
+def parse_participant(participant: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse a participant's bio into a structured profile using Groq or local heuristic fallback."""
+    name = participant.get("name", "Participant")
     bio = participant.get("bio", "")
     github = participant.get("github", "")
 
-    if not bio.strip() and not github.strip():
-        raise ValueError(f"{name} has neither a bio nor a GitHub URL.")
+    prompt = PARSE_PROFILE_PROMPT.format(name=name, github=github, bio=bio)
+    result = call_groq_llm(prompt)
 
-    client = get_groq_client()
+    if result and "primary_role" in result and "skills" in result:
+        result["name"] = name
+        result.setdefault("experience_level", "intermediate")
+        result.setdefault("superpower", "High-velocity MVP contribution")
+        result.setdefault("summary", bio)
+        return result
 
-    prompt = PROFILE_PROMPT.format(
-        name=name,
-        bio=bio or "Not provided",
-        github=github or "Not provided",
-    )
-
-    data = groq_json_completion(
-        client=client,
-        model=MODEL,
-        system_prompt=(
-            "You are a profile extraction system. "
-            "Return one valid JSON object matching the requested structure. "
-            "Do not use markdown."
-        ),
-        user_prompt=prompt,
-        temperature=0.1,
-    )
-
-    data["name"] = name
-    data["bio"] = bio
-    data["github"] = github
-    data["skills"] = list(dict.fromkeys(data.get("skills", [])))
-    data["primary_role"] = data.get("primary_role", "General Developer")
-    data["experience_level"] = data.get("experience_level", "Intermediate")
-    data["interests"] = data.get("interests", [])
-    data["preferences"] = data.get("preferences", [])
-
-    return data
+    return heuristic_parse_bio(name, bio, github)

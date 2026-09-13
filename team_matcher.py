@@ -1,66 +1,74 @@
-from typing import Dict, List, Set
-import re
+"""
+Team matcher module.
+Selects a complementary 3-member cohort to join the project Leader, enforcing role diversity and avoiding redundant skill stacks.
+"""
+
+from typing import Any, Dict, List
 
 
-def _norm(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+def role_category(role: str) -> str:
+    """Classify role into broad functional archetype."""
+    r = role.lower()
+    if any(k in r for k in ["frontend", "ui", "ux", "web", "design", "css"]):
+        return "frontend_design"
+    if any(k in r for k in ["ai", "ml", "data", "llm", "nlp", "machine learning"]):
+        return "ai_data"
+    if any(k in r for k in ["backend", "api", "database", "devops", "cloud", "system"]):
+        return "backend_infra"
+    if any(k in r for k in ["pitch", "product", "presentation", "writer", "research"]):
+        return "product_pitch"
+    return "general_eng"
 
 
-def _skill_overlap(skills: List[str], required: List[str]) -> int:
-    skill_text = " ".join(_norm(s) for s in skills)
-    return sum(1 for r in required if _norm(r) in skill_text)
+def form_team(candidates: List[Dict[str, Any]], project: Dict[str, Any], team_size: int = 3) -> List[Dict[str, Any]]:
+    """
+    Select complementary members using a greedy constraint satisfaction heuristic:
+    1. Highest semantic relevance per distinct functional category
+    2. Fallback to next best candidates if pool is constrained
+    """
+    if not candidates:
+        return []
 
+    sorted_cands = sorted(candidates, key=lambda c: c.get("semantic_score", 0), reverse=True)
+    chosen: List[Dict[str, Any]] = []
+    seen_categories = set()
 
-def _role_match(profile: Dict, required_roles: List[str]) -> int:
-    text = _norm(profile.get("primary_role", ""))
-    return sum(1 for role in required_roles if _norm(role) in text or text in _norm(role))
+    # Pass 1: pick candidates from distinct functional categories
+    for cand in sorted_cands:
+        if len(chosen) >= team_size:
+            break
+        cat = role_category(cand.get("primary_role", ""))
+        if cat not in seen_categories:
+            seen_categories.add(cat)
+            chosen_cand = dict(cand)
+            chosen.append(chosen_cand)
 
+    # Pass 2: fill remaining slots if distinct categories were exhausted
+    if len(chosen) < team_size:
+        chosen_names = {c.get("name") for c in chosen}
+        for cand in sorted_cands:
+            if len(chosen) >= team_size:
+                break
+            if cand.get("name") not in chosen_names:
+                chosen.append(dict(cand))
 
-def _score(profile: Dict, project: Dict, selected: List[Dict]) -> float:
-    required_skills = project.get("required_skills", [])
-    role_score = _role_match(profile, project.get("required_roles", []))
-    skill_score = _skill_overlap(profile.get("skills", []), required_skills)
-    semantic = float(profile.get("semantic_score", 0))
+    # Assign tactical squad roles & reasons
+    for member in chosen:
+        role = member.get("primary_role", "Engineer")
+        if "Frontend" in role or "UI" in role:
+            member["assigned_role"] = "Lead Frontend & User Experience"
+            member["selection_reason"] = "Owns UI components, layout design, and smooth user flow for demo day."
+        elif "AI" in role or "Data" in role:
+            member["assigned_role"] = "Lead AI / Data Pipeline Engineer"
+            member["selection_reason"] = "Owns model inference, prompt engineering, and intelligent processing."
+        elif "Backend" in role or "DevOps" in role:
+            member["assigned_role"] = "Core Backend & Cloud Infrastructure"
+            member["selection_reason"] = "Owns REST API endpoints, database schemas, and live deployment uptime."
+        elif "Pitch" in role or "Product" in role:
+            member["assigned_role"] = "Product Pitch & Presentation Lead"
+            member["selection_reason"] = "Owns the 3-minute pitch deck, demo script, and judge value articulation."
+        else:
+            member["assigned_role"] = role
+            member["selection_reason"] = "Selected for cross-functional versatility and technical problem solving."
 
-    existing_skills: Set[str] = {
-        _norm(skill)
-        for member in selected
-        for skill in member.get("skills", [])
-    }
-    unique_bonus = sum(1 for s in profile.get("skills", []) if _norm(s) not in existing_skills)
-
-    return semantic * 0.45 + role_score * 12 + skill_score * 8 + unique_bonus * 2
-
-
-def form_team(candidates: List[Dict], project: Dict, team_size: int = 4) -> List[Dict]:
-    """Greedily form a complementary team using project-aware scoring."""
-    if len(candidates) < team_size:
-        raise ValueError("Not enough candidates to form a team.")
-
-    remaining = list(candidates)
-    selected: List[Dict] = []
-
-    # First, favor candidates aligned with distinct required roles.
-    while remaining and len(selected) < team_size:
-        best = max(remaining, key=lambda p: _score(p, project, selected))
-        remaining.remove(best)
-
-        role = best.get("primary_role", "General Developer")
-        required_roles = project.get("required_roles", [])
-        if required_roles:
-            role = min(
-                required_roles,
-                key=lambda r: abs(
-                    _role_match(best, [r]) - 1
-                )
-            ) if _role_match(best, required_roles) else role
-
-        member = dict(best)
-        member["assigned_role"] = role
-        member["selection_reason"] = (
-            f"Semantic project match {best.get('semantic_score', 0):.0f}% "
-            f"with complementary skills for the squad."
-        )
-        selected.append(member)
-
-    return selected
+    return chosen
