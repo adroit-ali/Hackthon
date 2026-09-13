@@ -1,7 +1,13 @@
 import json
 import streamlit as st
 
-from storage import load_storage, save_storage, reset_storage
+from storage import (
+    load_storage,
+    add_participant_to_storage,
+    remove_participant_from_storage,
+    save_result_to_storage,
+    reset_storage
+)
 from profile_parser import parse_participant
 from project_analyzer import analyze_project
 from vector_store import build_profile_index, search_candidates
@@ -82,6 +88,21 @@ html, body, [class*="css"] {
     color: #67e8f9;
     border: 1px solid rgba(0, 242, 254, 0.3);
     margin-bottom: 0.85rem;
+}
+
+.live-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #10B981;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #10B981;
+    animation: pulse-dot 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 .aurora-title {
@@ -278,38 +299,14 @@ html, body, [class*="css"] {
 """, unsafe_allow_html=True)
 
 
-def sync_to_storage():
-    """Save current session state to persistent JSON storage."""
-    data = {
-        "participants": st.session_state.participants,
-        "result": st.session_state.result,
-        "step": st.session_state.step,
-        "selected_team_idx": st.session_state.selected_team_idx
-    }
-    save_storage(data)
-
-
-def init_state():
-    """Load persistent storage data into session state on first run."""
-    if "initialized" not in st.session_state:
-        stored = load_storage()
-        st.session_state.participants = stored.get("participants", [])
-        st.session_state.result = stored.get("result", None)
-        st.session_state.step = stored.get("step", 1)
-        st.session_state.selected_team_idx = stored.get("selected_team_idx", 0)
+def init_session():
+    """Ensure local session variables exist."""
+    if "step" not in st.session_state:
+        st.session_state.step = 1
+    if "selected_team_idx" not in st.session_state:
+        st.session_state.selected_team_idx = 0
+    if "participant_role_choice" not in st.session_state:
         st.session_state.participant_role_choice = "Member"
-        st.session_state.initialized = True
-
-
-def reset_workflow():
-    """Reset to the default seed and save."""
-    seed = reset_storage()
-    st.session_state.participants = seed["participants"]
-    st.session_state.result = None
-    st.session_state.step = 1
-    st.session_state.selected_team_idx = 0
-    st.session_state.participant_role_choice = "Member"
-    sync_to_storage()
 
 
 def stepper(current):
@@ -329,14 +326,6 @@ def stepper(current):
             html += f'<div class="step-line {"done" if i < current else ""}"></div>'
     html += '</div>'
     st.markdown(html, unsafe_allow_html=True)
-
-
-def get_leaders():
-    return [p for p in st.session_state.participants if p.get("role") == "leader"]
-
-
-def get_members():
-    return [p for p in st.session_state.participants if p.get("role") != "leader"]
 
 
 def participant_card(i, p):
@@ -364,18 +353,25 @@ def participant_card(i, p):
             unsafe_allow_html=True,
         )
     with c2:
-        if st.button("✕ Remove", key=f"remove_{i}", use_container_width=True):
-            st.session_state.participants.pop(i)
-            sync_to_storage()
+        if st.button("✕ Remove", key=f"remove_btn_{i}_{name}", use_container_width=True):
+            remove_participant_from_storage(i)
             st.rerun()
 
 
-init_state()
+init_session()
 
-# Aurora Header
+# Aurora Header with Live Pulse Indicator
 st.markdown("""
 <div class="aurora-hero">
-    <div class="aurora-pill">⚡ AI Autonomous Squad Matcher</div>
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+        <div class="aurora-pill">
+            <span class="live-pulse"></span>
+            <span>Live Multi-User Sync Active</span>
+        </div>
+        <div style="font-size: 0.75rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">
+            Auto-refresh enabled · Changes appear instantly across all tabs
+        </div>
+    </div>
     <div class="aurora-title">HackOps Launchpad</div>
     <div class="aurora-sub">
         Pair solo hackathon leaders and participants into balanced 4-person squads with complementary skills and instant 48-hour execution roadmaps.
@@ -390,33 +386,36 @@ with st.sidebar:
     st.markdown("### 🌌 HackOps Studio")
     st.caption("AI-Powered Autonomous Team Formation & 48-Hour Sprint Engine")
     
-    st.markdown("💾 **Storage:** Persistent JSON")
-    st.caption(f"Storing {len(st.session_state.participants)} participants locally in real-time.")
+    st.markdown("📡 **Real-time Sync:** Active")
+    st.caption("All additions and project pitches are stored live and synchronized across concurrent users.")
 
     st.divider()
     if st.button("↻ Reset to Initial Seed", use_container_width=True):
-        reset_workflow()
+        reset_storage()
+        st.session_state.step = 1
+        st.session_state.selected_team_idx = 0
         st.rerun()
 
     st.markdown("---")
     st.markdown("#### 🏆 Judge Alignment")
     st.caption("• 30% Tech & AI Innovation\n• 30% Live Working Demo\n• 20% UI/UX & Polish\n• 20% Pitch & Narrative")
 
-# STEP 1 — PARTICIPANTS & PITCHES
-if st.session_state.step == 1:
-    st.markdown("## 01 — Projects & Solo Hacker Pool")
-    st.write("Manage hackers in the persistent pool. Any hacker can pitch a **Leader Project Idea**, and our system automatically matches them with **3 complementary Members**.")
-    
-    count = len(st.session_state.participants)
-    leaders = get_leaders()
-    members = get_members()
-    
+
+# Auto-refreshing Live Fragment for Participants & Projects Display
+@st.fragment(run_every="2s")
+def render_live_participants_view():
+    """Live fragment that auto-polls persistent storage every 2 seconds without reloading the page."""
+    storage_data = load_storage()
+    participants = storage_data.get("participants", [])
+    leaders = [p for p in participants if p.get("role") == "leader"]
+    members = [p for p in participants if p.get("role") != "leader"]
+
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total in Pool", count)
+    col1.metric("Total in Pool", len(participants))
     col2.metric("Project Leaders", len(leaders))
     col3.metric("Solo Members", len(members))
 
-    st.markdown("### 💡 Pitched Projects")
+    st.markdown("### 💡 Pitched Projects (Live Shared)")
     if leaders:
         for leader in leaders:
             st.markdown(
@@ -430,6 +429,22 @@ if st.session_state.step == 1:
             )
     else:
         st.info("No projects yet. Add a **Leader** below with their hackathon project idea.")
+
+    st.markdown("### 👥 Stored Participant Pool (Live Shared)")
+    if not participants:
+        st.info("No participants stored. Add a Leader and Members below.")
+    else:
+        for i, p in enumerate(participants):
+            participant_card(i, p)
+
+
+# STEP 1 — PARTICIPANTS & PITCHES
+if st.session_state.step == 1:
+    st.markdown("## 01 — Projects & Solo Hacker Pool")
+    st.write("Add hackers to the shared live pool. Any hacker can pitch a **Leader Project Idea**, and our system automatically matches them with **3 complementary Members**.")
+    
+    # Render the auto-updating live view
+    render_live_participants_view()
 
     st.divider()
     st.markdown("### ＋ Add Participant / Pitch")
@@ -450,7 +465,7 @@ if st.session_state.step == 1:
                 "Hackathon Project Idea & MVP Vision *", height=120,
                 placeholder="Example: Build an AI-powered resume analyzer that scans resumes against job descriptions, identifies skill gaps, and suggests ATS optimizations."
             )
-        add = st.form_submit_button("＋ Submit to Pool", type="primary", use_container_width=True)
+        add = st.form_submit_button("＋ Submit to Live Pool", type="primary", use_container_width=True)
 
     if add:
         if not name.strip():
@@ -468,39 +483,37 @@ if st.session_state.step == 1:
             }
             if role_choice == "Leader":
                 participant["project_idea"] = idea.strip()
-            st.session_state.participants.append(participant)
-            sync_to_storage()
-            st.success(f"{name.strip()} added and saved to storage.")
+            add_participant_to_storage(participant)
+            st.success(f"✨ {name.strip()} added to live shared pool instantly.")
             st.rerun()
 
     st.divider()
-    st.markdown("### 👥 Stored Participant Pool")
-    if not st.session_state.participants:
-        st.info("No participants stored. Add at least one Leader and 3 Members, or click 'Reset to Initial Seed' in the sidebar.")
-    else:
-        for i, p in enumerate(st.session_state.participants):
-            participant_card(i, p)
+    curr_data = load_storage()
+    curr_participants = curr_data.get("participants", [])
+    curr_leaders = [p for p in curr_participants if p.get("role") == "leader"]
+    curr_members = [p for p in curr_participants if p.get("role") != "leader"]
 
-    st.divider()
-    ready = len(leaders) >= 1 and len(members) >= TEAM_SIZE_MEMBERS
+    ready = len(curr_leaders) >= 1 and len(curr_members) >= TEAM_SIZE_MEMBERS
     c1, _ = st.columns([1, 1])
     with c1:
         if st.button("⚡ Continue to AI Matcher →", type="primary", disabled=not ready, use_container_width=True):
             st.session_state.step = 2
-            sync_to_storage()
             st.rerun()
-    if not leaders:
+    if not curr_leaders:
         st.warning("⚠️ Add at least one Leader with a project idea to proceed.")
-    elif len(members) < TEAM_SIZE_MEMBERS:
-        n = TEAM_SIZE_MEMBERS - len(members)
+    elif len(curr_members) < TEAM_SIZE_MEMBERS:
+        n = TEAM_SIZE_MEMBERS - len(curr_members)
         st.warning(f"⚠️ Need {n} more Member{'s' if n != 1 else ''} to assemble a 4-person squad.")
 
 # STEP 2 — AI MATCH
 elif st.session_state.step == 2:
     st.markdown("## 02 — Autonomous AI Squad Matching")
-    st.write(f"The engine decomposes each Leader's project into core MVP pillars, performs FAISS vector search, and enforces complementary role balancing to form balanced 4-person squads.")
+    st.write("The engine decomposes each Leader's project into core MVP pillars, performs FAISS vector search, and enforces complementary role balancing to form balanced 4-person squads.")
 
-    if not st.session_state.result:
+    stored_data = load_storage()
+    saved_result = stored_data.get("result")
+
+    if not saved_result:
         st.markdown('''
         <div class="aurora-card">
             <div class="aurora-card-title">🚀 Ready to Assemble Balanced Squads?</div>
@@ -513,7 +526,7 @@ elif st.session_state.step == 2:
         if st.button("⚡ Run AI Squad Matching", type="primary", use_container_width=True):
             stage = "validating participants"
             try:
-                participants = st.session_state.participants
+                participants = stored_data.get("participants", [])
                 validate_participants(participants)
 
                 progress = st.progress(0)
@@ -583,21 +596,19 @@ elif st.session_state.step == 2:
                     })
 
                 progress.progress(100)
-                st.session_state.result = {
+                result_payload = {
                     "teams": teams,
                     "leftover_members": member_pool,
                     "skipped_projects": skipped_projects,
                 }
-                st.session_state.selected_team_idx = 0
-                sync_to_storage()
+                save_result_to_storage(result_payload, step=2)
                 status.success("✨ AI squad matching successfully completed and saved!")
                 st.rerun()
             except Exception as exc:
                 st.error(f"Error while {stage}: {exc}")
     else:
-        result = st.session_state.result
-        teams = result.get("teams", [])
-        leftover = result.get("leftover_members", [])
+        teams = saved_result.get("teams", [])
+        leftover = saved_result.get("leftover_members", [])
 
         if not teams:
             st.warning("No squads could be formed. Add more Members and try again.")
@@ -605,7 +616,6 @@ elif st.session_state.step == 2:
             st.success(f"✨ Successfully assembled {len(teams)} balanced 4-person squad{'s' if len(teams) != 1 else ''}!")
             for t_idx, t in enumerate(teams):
                 leader = t["team"][0]
-                squad = t["team"][1:]
                 st.markdown(
                     f'''<div class="aurora-card leader">
                         <div class="aurora-card-title">👑 Squad #{t_idx+1}: {t["project"].get("summary", "Project")[:100]}...</div>
@@ -640,14 +650,12 @@ elif st.session_state.step == 2:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("← Re-configure Participants", use_container_width=True):
-                st.session_state.result = None
+                save_result_to_storage(None, step=1)
                 st.session_state.step = 1
-                sync_to_storage()
                 st.rerun()
         with c2:
             if st.button("View Squad Balance Scores →", type="primary", use_container_width=True, disabled=not teams):
                 st.session_state.step = 3
-                sync_to_storage()
                 st.rerun()
 
 # STEP 3 — TEAM BALANCE
@@ -655,10 +663,13 @@ elif st.session_state.step == 3:
     st.markdown("## 03 — Squad Synergy & Balance Analysis")
     st.write("Understand your 4-person squad's capability coverage, role diversity, key strengths, and gap mitigations.")
     
-    teams = (st.session_state.result or {}).get("teams", [])
+    stored_data = load_storage()
+    saved_result = stored_data.get("result") or {}
+    teams = saved_result.get("teams", [])
+
     if not teams:
         st.warning("Please build teams first.")
-        if st.button("← Back to AI Matcher"): st.session_state.step = 2; sync_to_storage(); st.rerun()
+        if st.button("← Back to AI Matcher"): st.session_state.step = 2; st.rerun()
     else:
         if len(teams) > 1:
             idx = st.selectbox(
@@ -668,7 +679,6 @@ elif st.session_state.step == 3:
                 format_func=lambda i: f"👑 Squad #{i+1}: {teams[i]['leader_name']}'s Project",
             )
             st.session_state.selected_team_idx = idx
-            sync_to_storage()
         else:
             idx = 0
         
@@ -712,12 +722,10 @@ elif st.session_state.step == 3:
         with c1:
             if st.button("← Back to AI Matcher", use_container_width=True):
                 st.session_state.step = 2
-                sync_to_storage()
                 st.rerun()
         with c2:
             if st.button("⚡ Open 48-Hour Launchpad →", type="primary", use_container_width=True):
                 st.session_state.step = 4
-                sync_to_storage()
                 st.rerun()
 
 # STEP 4 — LAUNCHPAD
@@ -725,7 +733,10 @@ else:
     st.markdown("## 04 — 48-Hour Launchpad & Sprint Engine")
     st.write("A customized 4-phase execution roadmap with individual task owners, milestone deliverables, and demo-day verification.")
 
-    teams = (st.session_state.result or {}).get("teams", [])
+    stored_data = load_storage()
+    saved_result = stored_data.get("result") or {}
+    teams = saved_result.get("teams", [])
+
     if not teams:
         st.warning("Please build teams first.")
     else:
@@ -738,7 +749,6 @@ else:
                 key="launch_team_select",
             )
             st.session_state.selected_team_idx = idx
-            sync_to_storage()
         else:
             idx = 0
         
@@ -787,9 +797,9 @@ else:
         with c1:
             if st.button("← Back to Balance Scores", use_container_width=True):
                 st.session_state.step = 3
-                sync_to_storage()
                 st.rerun()
         with c2:
             if st.button("↻ Pitch New Project", use_container_width=True):
-                reset_workflow()
+                save_result_to_storage(None, step=1)
+                st.session_state.step = 1
                 st.rerun()
