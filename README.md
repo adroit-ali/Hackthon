@@ -11,12 +11,13 @@ Solo hackathon participants waste critical opening hours struggling to find comp
 ## ⚡ Our Solution
 
 An intelligent AI launch platform with an **Aurora UI & Gradient Mesh** aesthetic:
-1. **Parses Messy Bios**: Extracts structured roles, technical skills, experience level, and superpowers from natural language descriptions or GitHub profiles.
-2. **Analyzes Project Needs**: Decomposes submitted hackathon ideas into essential technical and operational capabilities required for a working MVP.
-3. **Vectorizes & Indexes Profiles**: Converts participant profiles into dense semantic embeddings and stores them in a local FAISS index for similarity retrieval.
-4. **Balances the 4-Person Squad**: Combines vector retrieval with complementary role-filtering logic (1 Leader + 3 distinct functional roles) to prevent overlapping stacks.
-5. **Evaluates Team Coverage**: Analyzes collective capability coverage (0–100%), role diversity (0–100%), highlights gaps, and calculates an overall team-fit score.
-6. **Generates a 48-Hour Sprint Roadmap**: Produces a time-boxed execution schedule with individual task ownership, milestone deliverables, and a demo-day preparation checklist.
+1. **Persistent Local Data Store**: Automatically seeds default hackathon participants once and persists all participant additions, deletions, and match states across browser sessions.
+2. **Parses Messy Bios**: Extracts structured roles, technical skills, experience level, and superpowers from natural language descriptions or GitHub profiles.
+3. **Analyzes Project Needs**: Decomposes submitted hackathon ideas into essential technical and operational capabilities required for a working MVP.
+4. **Vectorizes & Indexes Profiles**: Converts participant profiles into dense semantic embeddings and stores them in a local FAISS index for similarity retrieval.
+5. **Balances the 4-Person Squad**: Combines vector retrieval with complementary role-filtering logic (1 Leader + 3 distinct functional roles) to prevent overlapping stacks.
+6. **Evaluates Team Coverage**: Analyzes collective capability coverage (0–100%), role diversity (0–100%), highlights gaps, and calculates an overall team-fit score.
+7. **Generates a 48-Hour Sprint Roadmap**: Produces a time-boxed execution schedule with individual task ownership, milestone deliverables, and a demo-day preparation checklist.
 
 ---
 
@@ -26,9 +27,12 @@ An intelligent AI launch platform with an **Aurora UI & Gradient Mesh** aestheti
 HackOps/
 ├── .streamlit/
 │   └── config.toml          # Streamlit theme (Aurora dark, cyan/violet accents)
+├── data/
+│   └── hackops_storage.json # Persistent JSON data store (pre-seeded automatically)
 ├── .env.example             # Environment variable template (GROQ_API_KEY)
 ├── .gitignore               # Python and environment ignores
 ├── requirements.txt         # Minimal, high-compatibility dependencies
+├── storage.py               # Real-time JSON persistence & auto-seeding engine
 ├── prompts.py               # Prompt templates for profile parsing, analysis & sprint plans
 ├── profile_parser.py        # Messy bio extraction (Groq + local heuristic fallback)
 ├── project_analyzer.py      # Project requirement & capability decomposition
@@ -94,7 +98,7 @@ streamlit run app.py
 1. Push this repository to your GitHub account:
    ```bash
    git add .
-   git commit -m "feat: HackOps Aurora AI Launchpad"
+   git commit -m "feat: HackOps Aurora AI Launchpad with persistent storage"
    git push origin main
    ```
 2. Navigate to [share.streamlit.io](https://share.streamlit.io) and create a **New app**.
