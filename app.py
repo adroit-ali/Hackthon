@@ -19,284 +19,271 @@ from utils import validate_participants
 TEAM_SIZE_MEMBERS = 3  # each team = 1 Leader + 3 Members = 4-person squad
 
 st.set_page_config(
-    page_title="HackOps — Aurora AI Squad Launchpad",
+    page_title="HackOps — Minimalist AI Launchpad",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom Aurora UI / Gradient Mesh CSS Injection
-st.markdown("""
-<style>
+# Custom Minimalist Light Mode CSS Injection
+st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    color: #0F172A;
 }
 
-/* Aurora App Canvas */
+/* Light Background Canvas */
 .stApp {
-    background-color: #070b14;
-    background-image: 
-        radial-gradient(at 10% 20%, rgba(0, 242, 254, 0.12) 0px, transparent 50%),
-        radial-gradient(at 90% 15%, rgba(127, 0, 255, 0.15) 0px, transparent 45%),
-        radial-gradient(at 50% 85%, rgba(225, 0, 255, 0.1) 0px, transparent 55%),
-        radial-gradient(at 80% 80%, rgba(0, 245, 160, 0.08) 0px, transparent 50%);
-    background-attachment: fixed;
+    background-color: #F8FAFC;
 }
 
 .block-container {
-    max-width: 1240px;
-    padding-top: 2rem;
-    padding-bottom: 5rem;
+    max-width: 1180px;
+    padding-top: 1.75rem;
+    padding-bottom: 4rem;
 }
 
-/* Aurora Hero Banner */
-.aurora-hero {
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.65));
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    padding: 2.25rem 2.5rem;
-    margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.45);
+/* Minimalist Hero Header */
+.minimal-hero {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.aurora-hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #00F2FE 0%, #4FACFE 25%, #7F00FF 50%, #E100FF 75%, #00F5A0 100%);
-}
-
-.aurora-pill {
+.minimal-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.95rem;
+    gap: 0.45rem;
+    padding: 0.25rem 0.75rem;
     border-radius: 9999px;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
-    background: rgba(0, 242, 254, 0.12);
-    color: #67e8f9;
-    border: 1px solid rgba(0, 242, 254, 0.3);
-    margin-bottom: 0.85rem;
+    background: #F1F5F9;
+    color: #334155;
+    border: 1px solid #E2E8F0;
+    margin-bottom: 0.6rem;
 }
 
 .live-pulse {
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     background-color: #10B981;
     border-radius: 50%;
-    box-shadow: 0 0 8px #10B981;
-    animation: pulse-dot 1.5s infinite ease-in-out;
 }
 
-@keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.85); }
-}
-
-.aurora-title {
-    font-size: 2.5rem;
+.minimal-title {
+    font-size: 2.1rem;
     font-weight: 800;
-    letter-spacing: -1.2px;
-    line-height: 1.15;
-    background: linear-gradient(135deg, #FFFFFF 20%, #A5B4FC 60%, #00F2FE 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
+    letter-spacing: -0.8px;
+    line-height: 1.2;
+    color: #0F172A;
+    margin-bottom: 0.35rem;
 }
 
-.aurora-sub {
-    color: #94a3b8;
-    font-size: 1.05rem;
-    max-width: 820px;
-    line-height: 1.55;
+.minimal-sub {
+    color: #475467;
+    font-size: 0.95rem;
+    max-width: 780px;
+    line-height: 1.5;
     margin-bottom: 0;
 }
 
-/* Stepper Component */
+/* Minimalist Stepper */
 .stepper-wrap {
-    background: rgba(15, 23, 42, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 1rem 1.75rem;
-    margin-bottom: 2rem;
-    backdrop-filter: blur(12px);
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 0.85rem 1.5rem;
+    margin-bottom: 1.75rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .step-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.65rem;
 }
 
 .step-circle {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 0.85rem;
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.04);
-    color: #64748b;
-    transition: all 0.3s ease;
+    font-size: 0.78rem;
+    border: 1.5px solid #CBD5E1;
+    background: #F8FAFC;
+    color: #64748B;
+    transition: all 0.2s ease;
 }
 
 .step-circle.active {
-    background: linear-gradient(135deg, #00F2FE, #7F00FF);
-    color: #ffffff;
-    border-color: #00F2FE;
-    box-shadow: 0 0 16px rgba(0, 242, 254, 0.55);
+    background: #0F172A;
+    color: #FFFFFF;
+    border-color: #0F172A;
 }
 
 .step-circle.done {
     background: #10B981;
-    color: #ffffff;
-    border-color: #34D399;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+    color: #FFFFFF;
+    border-color: #10B981;
 }
 
 .step-label {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     font-weight: 700;
-    color: #64748b;
+    color: #64748B;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
 }
 
 .step-label.active {
-    color: #f8fafc;
+    color: #0F172A;
 }
 
 .step-line {
     flex: 1;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.08);
-    margin: 0 1.25rem;
-    border-radius: 2px;
+    height: 1.5px;
+    background: #E2E8F0;
+    margin: 0 1rem;
 }
 
 .step-line.done {
-    background: linear-gradient(90deg, #10B981, #00F2FE);
+    background: #10B981;
 }
 
-/* Aurora Glass Cards */
-.aurora-card {
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(30, 41, 59, 0.5));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    backdrop-filter: blur(14px);
-    margin-bottom: 1rem;
-    position: relative;
-    transition: transform 0.2s ease, border-color 0.2s ease;
+/* Minimalist Cards */
+.minimal-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 1.15rem 1.35rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.aurora-card:hover {
-    border-color: rgba(0, 242, 254, 0.3);
-    transform: translateY(-2px);
+.minimal-card:hover {
+    border-color: #CBD5E1;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
 }
 
-.aurora-card.leader {
-    border-color: rgba(245, 158, 11, 0.4);
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.75) 100%);
+.minimal-card.leader {
+    border: 1.5px solid #FCD34D;
+    background: #FFFDF5;
 }
 
-.aurora-card-title {
-    font-size: 1.05rem;
+.minimal-card-title {
+    font-size: 0.98rem;
     font-weight: 700;
-    color: #f8fafc;
+    color: #0F172A;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
 }
 
-.aurora-card-meta {
-    font-size: 0.88rem;
-    color: #94a3b8;
-    line-height: 1.5;
-    margin-top: 0.4rem;
+.minimal-card-meta {
+    font-size: 0.86rem;
+    color: #475467;
+    line-height: 1.45;
+    margin-top: 0.35rem;
 }
 
-/* Badges */
+/* Minimal Badges */
 .badge-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.22rem 0.65rem;
+    gap: 0.3rem;
+    padding: 0.15rem 0.55rem;
     border-radius: 9999px;
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
 }
 
 .badge-leader {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
 }
 
 .badge-member {
-    background: rgba(99, 102, 241, 0.15);
-    color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.35);
+    background: #EFF6FF;
+    color: #1E40AF;
+    border: 1px solid #DBEAFE;
 }
 
 .badge-skill {
-    background: rgba(255, 255, 255, 0.05);
-    color: #cbd5e1;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #F1F5F9;
+    color: #334155;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
 }
 
-/* Score Metrics Box */
+/* Minimal Metric Box */
 .metric-box {
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 1.25rem 1rem;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 1.15rem 1rem;
     text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .metric-val {
-    font-size: 2rem;
+    font-size: 1.85rem;
     font-weight: 800;
     font-family: 'JetBrains Mono', monospace;
-    color: #00F2FE;
+    color: #0F172A;
 }
 
 .metric-lbl {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #64748b;
-    margin-top: 0.25rem;
+    letter-spacing: 0.05em;
+    color: #64748B;
+    margin-top: 0.2rem;
 }
 
-/* Progress bar styling */
-.stProgress > div > div > div > div {
-    background-image: linear-gradient(90deg, #00F2FE, #7F00FF, #E100FF);
+/* Form Styles */
+div[data-testid="stForm"] {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 1.35rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
-</style>
-""", unsafe_allow_html=True)
+
+/* Clean Button Styling */
+button[kind="primary"] {
+    background-color: #0F172A !important;
+    color: #FFFFFF !important;
+    border-color: #0F172A !important;
+    border-radius: 8px !important;
+}
+
+button[kind="secondary"] {
+    background-color: #FFFFFF !important;
+    color: #334155 !important;
+    border-color: #E2E8F0 !important;
+    border-radius: 8px !important;
+}
+</style>""", unsafe_allow_html=True)
 
 
 def init_session():
@@ -336,22 +323,20 @@ def participant_card(i, p):
     badge_cls = "badge-leader" if is_leader else "badge-member"
     role_badge = f'<span class="badge-pill {badge_cls}">{"👑 Leader" if is_leader else "🙋 Member"}</span>'
     idea = p.get("project_idea", "")
-    idea_html = f'<div style="margin-top: 0.4rem; color: #fbbf24; font-size: 0.85rem;"><b>💡 Project Idea:</b> {idea}</div>' if is_leader and idea else ""
-    github_html = f'<span style="margin-left: 0.6rem; font-size: 0.8rem; color: #67e8f9;">🔗 {github}</span>' if github else ""
+    idea_html = f'<div style="margin-top:0.4rem;color:#B45309;font-size:0.85rem;font-weight:500;"><b>💡 Project Idea:</b> {idea}</div>' if is_leader and idea else ""
+    github_html = f'<span style="margin-left:0.6rem;font-size:0.8rem;color:#0284C7;">🔗 {github}</span>' if github else ""
 
     c1, c2 = st.columns([6, 1])
     with c1:
-        card_cls = "aurora-card leader" if is_leader else "aurora-card"
-        st.markdown(
-            f'''<div class="{card_cls}">
-                <div class="aurora-card-title">
-                    <span>👤 {name}</span>{role_badge}{github_html}
-                </div>
-                <div class="aurora-card-meta">{bio}</div>
-                {idea_html}
-            </div>''',
-            unsafe_allow_html=True,
+        card_cls = "minimal-card leader" if is_leader else "minimal-card"
+        html_card = (
+            f'<div class="{card_cls}">'
+            f'<div class="minimal-card-title"><span>👤 {name}</span>{role_badge}{github_html}</div>'
+            f'<div class="minimal-card-meta">{bio}</div>'
+            f'{idea_html}'
+            f'</div>'
         )
+        st.markdown(html_card, unsafe_allow_html=True)
     with c2:
         if st.button("✕ Remove", key=f"remove_btn_{i}_{name}", use_container_width=True):
             remove_participant_from_storage(i)
@@ -360,34 +345,28 @@ def participant_card(i, p):
 
 init_session()
 
-# Aurora Header with Live Pulse Indicator
-st.markdown("""
-<div class="aurora-hero">
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
-        <div class="aurora-pill">
-            <span class="live-pulse"></span>
-            <span>Live Multi-User Sync Active</span>
-        </div>
-        <div style="font-size: 0.75rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">
-            Auto-refresh enabled · Changes appear instantly across all tabs
-        </div>
-    </div>
-    <div class="aurora-title">HackOps Launchpad</div>
-    <div class="aurora-sub">
-        Pair solo hackathon leaders and participants into balanced 4-person squads with complementary skills and instant 48-hour execution roadmaps.
-    </div>
-</div>
-""", unsafe_allow_html=True)
+# Minimalist Header with Live Pulse Indicator
+st.markdown(
+    '<div class="minimal-hero">'
+    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">'
+    '<div class="minimal-pill"><span class="live-pulse"></span><span>Live Multi-User Sync</span></div>'
+    '<div style="font-size:0.75rem;color:#64748B;font-family:\'JetBrains Mono\',monospace;">Auto-refresh active · All changes sync in real-time</div>'
+    '</div>'
+    '<div class="minimal-title">HackOps Launchpad</div>'
+    '<div class="minimal-sub">Pair solo hackathon leaders and participants into balanced 4-person squads with complementary skillsets and instant 48-hour execution plans.</div>'
+    '</div>',
+    unsafe_allow_html=True
+)
 
 stepper(st.session_state.step)
 
 # Sidebar Controls
 with st.sidebar:
-    st.markdown("### 🌌 HackOps Studio")
-    st.caption("AI-Powered Autonomous Team Formation & 48-Hour Sprint Engine")
+    st.markdown("### 🚀 HackOps")
+    st.caption("Minimalist AI Hackathon Team Builder")
     
-    st.markdown("📡 **Real-time Sync:** Active")
-    st.caption("All additions and project pitches are stored live and synchronized across concurrent users.")
+    st.markdown("💾 **Storage:** Persistent JSON")
+    st.caption("Participant pool and project matches are saved in real-time.")
 
     st.divider()
     if st.button("↻ Reset to Initial Seed", use_container_width=True):
@@ -397,8 +376,8 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.markdown("#### 🏆 Judge Alignment")
-    st.caption("• 30% Tech & AI Innovation\n• 30% Live Working Demo\n• 20% UI/UX & Polish\n• 20% Pitch & Narrative")
+    st.markdown("#### 🏆 Judge Rubric Alignment")
+    st.caption("• 30% Tech & AI Depth\n• 30% Live Working Demo\n• 20% UX & Polish\n• 20% Pitch & Storytelling")
 
 
 # Auto-refreshing Live Fragment for Participants & Projects Display
@@ -415,22 +394,20 @@ def render_live_participants_view():
     col2.metric("Project Leaders", len(leaders))
     col3.metric("Solo Members", len(members))
 
-    st.markdown("### 💡 Pitched Projects (Live Shared)")
+    st.markdown("### 💡 Pitched Projects")
     if leaders:
         for leader in leaders:
-            st.markdown(
-                f'''<div class="aurora-card leader">
-                    <div class="aurora-card-title">🚀 {leader.get("project_idea", "")[:120]}...</div>
-                    <div class="aurora-card-meta">
-                        <span style="color: #fbbf24;">👑 Leader: <b>{leader.get("name", "Unknown")}</b></span> — {leader.get("bio", "")}
-                    </div>
-                </div>''',
-                unsafe_allow_html=True,
+            card_html = (
+                f'<div class="minimal-card leader">'
+                f'<div class="minimal-card-title">🚀 {leader.get("project_idea", "")[:120]}...</div>'
+                f'<div class="minimal-card-meta"><span style="color:#B45309;">👑 Leader: <b>{leader.get("name", "Unknown")}</b></span> — {leader.get("bio", "")}</div>'
+                f'</div>'
             )
+            st.markdown(card_html, unsafe_allow_html=True)
     else:
         st.info("No projects yet. Add a **Leader** below with their hackathon project idea.")
 
-    st.markdown("### 👥 Stored Participant Pool (Live Shared)")
+    st.markdown("### 👥 Stored Participant Pool")
     if not participants:
         st.info("No participants stored. Add a Leader and Members below.")
     else:
@@ -441,7 +418,7 @@ def render_live_participants_view():
 # STEP 1 — PARTICIPANTS & PITCHES
 if st.session_state.step == 1:
     st.markdown("## 01 — Projects & Solo Hacker Pool")
-    st.write("Add hackers to the shared live pool. Any hacker can pitch a **Leader Project Idea**, and our system automatically matches them with **3 complementary Members**.")
+    st.write("Add hackers to the shared live pool. Any participant can pitch a **Leader Project Idea**, and our system automatically matches them with **3 complementary Members**.")
     
     # Render the auto-updating live view
     render_live_participants_view()
@@ -456,13 +433,13 @@ if st.session_state.step == 1:
             name = st.text_input("Full Name or Handle *", placeholder="e.g. Sara Chen")
         with c2:
             github = st.text_input("GitHub URL (optional)", placeholder="https://github.com/sarachen")
-        bio = st.text_area("Messy Bio / Technical Skills *", height=100,
-                           placeholder="e.g. Frontend developer who loves React, Next.js, and glassmorphism styling. 2 years experience.")
+        bio = st.text_area("Messy Bio / Technical Skills *", height=90,
+                           placeholder="e.g. Frontend developer who loves React, Next.js, and clean UI design. 2 years experience.")
         idea = ""
         if role_choice == "Leader":
             st.markdown("---")
             idea = st.text_area(
-                "Hackathon Project Idea & MVP Vision *", height=120,
+                "Hackathon Project Idea & MVP Vision *", height=110,
                 placeholder="Example: Build an AI-powered resume analyzer that scans resumes against job descriptions, identifies skill gaps, and suggests ATS optimizations."
             )
         add = st.form_submit_button("＋ Submit to Live Pool", type="primary", use_container_width=True)
@@ -484,7 +461,7 @@ if st.session_state.step == 1:
             if role_choice == "Leader":
                 participant["project_idea"] = idea.strip()
             add_participant_to_storage(participant)
-            st.success(f"✨ {name.strip()} added to live shared pool instantly.")
+            st.success(f"✨ {name.strip()} added successfully.")
             st.rerun()
 
     st.divider()
@@ -514,14 +491,13 @@ elif st.session_state.step == 2:
     saved_result = stored_data.get("result")
 
     if not saved_result:
-        st.markdown('''
-        <div class="aurora-card">
-            <div class="aurora-card-title">🚀 Ready to Assemble Balanced Squads?</div>
-            <div class="aurora-card-meta">
-                This workflow executes bio parsing, capability breakdown, dense embedding search, complementary role optimization, and 48-hour sprint roadmap generation.
-            </div>
-        </div>
-        ''', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="minimal-card">'
+            '<div class="minimal-card-title">🚀 Ready to Assemble Balanced Squads?</div>'
+            '<div class="minimal-card-meta">This workflow executes bio parsing, capability breakdown, dense embedding search, complementary role optimization, and 48-hour sprint roadmap generation.</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
         
         if st.button("⚡ Run AI Squad Matching", type="primary", use_container_width=True):
             stage = "validating participants"
@@ -602,7 +578,7 @@ elif st.session_state.step == 2:
                     "skipped_projects": skipped_projects,
                 }
                 save_result_to_storage(result_payload, step=2)
-                status.success("✨ AI squad matching successfully completed and saved!")
+                status.success("✨ AI squad matching successfully completed!")
                 st.rerun()
             except Exception as exc:
                 st.error(f"Error while {stage}: {exc}")
@@ -616,31 +592,31 @@ elif st.session_state.step == 2:
             st.success(f"✨ Successfully assembled {len(teams)} balanced 4-person squad{'s' if len(teams) != 1 else ''}!")
             for t_idx, t in enumerate(teams):
                 leader = t["team"][0]
-                st.markdown(
-                    f'''<div class="aurora-card leader">
-                        <div class="aurora-card-title">👑 Squad #{t_idx+1}: {t["project"].get("summary", "Project")[:100]}...</div>
-                        <div class="aurora-card-meta"><b>Leader:</b> {leader.get("name")} · <b>MVP Goal:</b> {t["project"].get("mvp_goal", "")}</div>
-                    </div>''',
-                    unsafe_allow_html=True,
+                squad_header = (
+                    f'<div class="minimal-card leader">'
+                    f'<div class="minimal-card-title">👑 Squad #{t_idx+1}: {t["project"].get("summary", "Project")[:100]}...</div>'
+                    f'<div class="minimal-card-meta"><b>Leader:</b> {leader.get("name")} · <b>MVP Goal:</b> {t["project"].get("mvp_goal", "")}</div>'
+                    f'</div>'
                 )
+                st.markdown(squad_header, unsafe_allow_html=True)
                 
                 cols = st.columns(4)
                 for c_idx, member in enumerate(t["team"]):
                     with cols[c_idx]:
                         is_lead = c_idx == 0
-                        card_cls = "aurora-card leader" if is_lead else "aurora-card"
+                        card_cls = "minimal-card leader" if is_lead else "minimal-card"
                         role_str = member.get("assigned_role") or member.get("primary_role", "Team Member")
                         skills_str = " · ".join(member.get("skills", [])[:4])
-                        st.markdown(
-                            f'''<div class="{card_cls}" style="min-height: 220px;">
-                                <div style="font-size: 0.75rem; color: #64748b; font-weight: 700;">#0{c_idx+1}</div>
-                                <div style="font-weight: 800; font-size: 1.1rem; color: #f8fafc; margin-top: 0.2rem;">{member.get("name")}</div>
-                                <div style="color: #00F2FE; font-size: 0.82rem; font-weight: 700; margin: 0.3rem 0;">{role_str}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; line-height: 1.4;">{member.get("selection_reason", "")}</div>
-                                <div style="margin-top: 0.5rem; font-size: 0.72rem; color: #67e8f9;">{skills_str}</div>
-                            </div>''',
-                            unsafe_allow_html=True
+                        member_html = (
+                            f'<div class="{card_cls}" style="min-height:200px;">'
+                            f'<div style="font-size:0.75rem;color:#64748B;font-weight:700;">#0{c_idx+1}</div>'
+                            f'<div style="font-weight:800;font-size:1.05rem;color:#0F172A;margin-top:0.2rem;">{member.get("name")}</div>'
+                            f'<div style="color:#0284C7;font-size:0.8rem;font-weight:700;margin:0.25rem 0;">{role_str}</div>'
+                            f'<div style="font-size:0.75rem;color:#475467;line-height:1.4;">{member.get("selection_reason", "")}</div>'
+                            f'<div style="margin-top:0.5rem;font-size:0.72rem;color:#0284C7;">{skills_str}</div>'
+                            f'</div>'
                         )
+                        st.markdown(member_html, unsafe_allow_html=True)
                 st.divider()
 
         if leftover:
@@ -687,20 +663,14 @@ elif st.session_state.step == 3:
         
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown(f'''<div class="metric-box">
-                <div class="metric-val">{balance.get("overall_score", 0):.0f}/100</div>
-                <div class="metric-lbl">Overall Squad Fit</div>
-            </div>''', unsafe_allow_html=True)
+            m1_html = f'<div class="metric-box"><div class="metric-val">{balance.get("overall_score", 0):.0f}/100</div><div class="metric-lbl">Overall Squad Fit</div></div>'
+            st.markdown(m1_html, unsafe_allow_html=True)
         with c2:
-            st.markdown(f'''<div class="metric-box">
-                <div class="metric-val" style="color: #10B981;">{balance.get("coverage_score", 0):.0f}%</div>
-                <div class="metric-lbl">Capability Coverage</div>
-            </div>''', unsafe_allow_html=True)
+            m2_html = f'<div class="metric-box"><div class="metric-val" style="color:#10B981;">{balance.get("coverage_score", 0):.0f}%</div><div class="metric-lbl">Capability Coverage</div></div>'
+            st.markdown(m2_html, unsafe_allow_html=True)
         with c3:
-            st.markdown(f'''<div class="metric-box">
-                <div class="metric-val" style="color: #7F00FF;">{balance.get("role_diversity_score", 0):.0f}%</div>
-                <div class="metric-lbl">Role Diversity</div>
-            </div>''', unsafe_allow_html=True)
+            m3_html = f'<div class="metric-box"><div class="metric-val" style="color:#6366F1;">{balance.get("role_diversity_score", 0):.0f}%</div><div class="metric-lbl">Role Diversity</div></div>'
+            st.markdown(m3_html, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         left, right = st.columns(2)
@@ -755,12 +725,13 @@ else:
         t = teams[idx]
         project, sprint = t["project"], t["sprint"]
 
-        st.markdown(f'''
-        <div class="aurora-card leader">
-            <div class="aurora-card-title">🚀 {project.get("summary", "Hackathon Project")}</div>
-            <div class="aurora-card-meta"><b>MVP Goal:</b> {project.get("mvp_goal", "Not specified")}</div>
-        </div>
-        ''', unsafe_allow_html=True)
+        proj_header = (
+            f'<div class="minimal-card leader">'
+            f'<div class="minimal-card-title">🚀 {project.get("summary", "Hackathon Project")}</div>'
+            f'<div class="minimal-card-meta"><b>MVP Goal:</b> {project.get("mvp_goal", "Not specified")}</div>'
+            f'</div>'
+        )
+        st.markdown(proj_header, unsafe_allow_html=True)
 
         st.markdown("### ⏱ 4-Phase Sprint Roadmap")
         for phase in sprint.get("phases", []) or []:
@@ -772,7 +743,7 @@ else:
                 for task in phase.get("tasks", []) or []:
                     if isinstance(task, dict):
                         owner_badge = f" `👤 {task.get('owner', 'Team')}`" if task.get('owner') else ""
-                        deliv = f"<br><span style='color: #64748b; font-size: 0.8rem;'>🎯 Deliverable: {task.get('deliverable')}</span>" if task.get("deliverable") else ""
+                        deliv = f"<br><span style='color:#64748B;font-size:0.8rem;'>🎯 Deliverable: {task.get('deliverable')}</span>" if task.get("deliverable") else ""
                         st.markdown(f"- **{task.get('task', 'Task')}**{owner_badge}{deliv}", unsafe_allow_html=True)
                     else:
                         st.markdown(f"- {task}")
