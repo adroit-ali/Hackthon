@@ -1,468 +1,471 @@
+import json
 import streamlit as st
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 
-# Try importing Plotly for rich charts, fallback to native charts if missing
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
+from mock_data import MOCK_PARTICIPANTS, MOCK_PROJECT
+from profile_parser import parse_participant
+from project_analyzer import analyze_project
+from vector_store import build_profile_index, search_candidates
+from team_matcher import form_team
+from team_balance import evaluate_team
+from sprint_planner import generate_sprint_plan
+from utils import validate_participants
 
-# -----------------------------------------------------------------------------
-# 1. PAGE CONFIGURATION
-# -----------------------------------------------------------------------------
-st.set_page_config(
-    page_title="Streamlit Pro Starter",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+TEAM_SIZE_MEMBERS = 3  # each team = 1 Leader + this many Members
 
-# -----------------------------------------------------------------------------
-# 2. CUSTOM CSS STYLING
-# -----------------------------------------------------------------------------
+st.set_page_config(page_title="HackOps", page_icon="🚀", layout="wide")
+
 st.markdown("""
 <style>
-    /* Main container background & font tweaks */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    
-    /* Header Gradient Text */
-    .hero-title {
-        background: linear-gradient(135deg, #6366F1 0%, #A855F7 50%, #EC4899 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 800;
-        font-size: 2.25rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .hero-subtitle {
-        color: #94A3B8;
-        font-size: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    /* Modern Card Layout */
-    .metric-card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
-        backdrop-filter: blur(10px);
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(99, 102, 241, 0.4);
-    }
-    
-    .metric-title {
-        color: #94A3B8;
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    .metric-value {
-        color: #F8FAFC;
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin: 0.35rem 0;
-    }
-    
-    .metric-delta {
-        font-size: 0.825rem;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-    
-    .delta-positive {
-        color: #10B981;
-    }
-    
-    .delta-negative {
-        color: #EF4444;
-    }
-
-    /* Pill badge */
-    .badge {
-        display: inline-block;
-        padding: 0.25rem 0.6rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        border-radius: 9999px;
-        background: rgba(99, 102, 241, 0.15);
-        color: #818CF8;
-        border: 1px solid rgba(99, 102, 241, 0.3);
-    }
+.block-container{max-width:1180px;padding-top:2rem;padding-bottom:4rem}
+.h-title{font-size:2.1rem;font-weight:800;letter-spacing:-1px;margin-bottom:.1rem}
+.h-sub{color:#667085;margin-bottom:1.6rem}
+.stepper{display:flex;align-items:center;margin:.5rem 0 2rem}
+.step-item{display:flex;align-items:center;flex:1}
+.step-circle{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid #d0d5dd;background:#fff;color:#667085;flex-shrink:0}
+.step-circle.active{background:#111827;color:#fff;border-color:#111827}
+.step-circle.done{background:#12b76a;color:#fff;border-color:#12b76a}
+.step-label{margin-left:8px;font-size:.78rem;font-weight:600;color:#667085;white-space:nowrap}
+.step-label.active{color:#111827}.step-line{height:1px;background:#d0d5dd;flex:1;margin:0 10px}.step-line.done{background:#12b76a}
+.card{border:1px solid #eaecf0;border-radius:14px;padding:1rem 1.1rem;background:#fff;margin-bottom:.7rem}
+.pname{font-weight:700;font-size:1rem}.meta{color:#667085;font-size:.86rem;line-height:1.45}
+.badge{display:inline-block;padding:.25rem .6rem;border-radius:999px;background:#f2f4f7;color:#344054;font-size:.8rem;font-weight:700}
+.role{color:#475467;font-size:.88rem;font-weight:600}
+.role-badge{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.72rem;font-weight:700;margin-left:.4rem;vertical-align:middle}
+.role-badge.leader{background:#fef3c7;color:#92400e}
+.role-badge.member{background:#eef2ff;color:#3730a3}
+.leader-card{border:2px solid #fbbf24;border-radius:14px;padding:1rem 1.1rem;background:#fffbeb;margin-bottom:.5rem}
+.leader-crown{font-size:1.1rem}
+.project-title{font-weight:800;font-size:1.05rem;margin-bottom:.15rem}
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------
-# 3. SESSION STATE & SAMPLE DATA GENERATOR
-# -----------------------------------------------------------------------------
-if "records" not in st.session_state:
-    st.session_state.records = []
 
-@st.cache_data
-def load_sample_dataset():
-    """Generates a realistic sample dataset for analytics & visualization."""
-    np.random.seed(42)
-    categories = ["SaaS Subscription", "Enterprise License", "Professional Services", "Hardware Add-on"]
-    regions = ["North America", "Europe", "Asia-Pacific", "Latin America"]
-    statuses = ["Completed", "Pending", "Processing", "Refunded"]
-    
-    start_date = datetime.now() - timedelta(days=90)
-    dates = [start_date + timedelta(days=int(x)) for x in np.linspace(0, 90, 200)]
-    
-    df = pd.DataFrame({
-        "Transaction ID": [f"TRX-{1000 + i}" for i in range(200)],
-        "Date": dates,
-        "Customer": [f"Client {chr(65 + (i % 26))}{i % 10}" for i in range(200)],
-        "Category": np.random.choice(categories, size=200, p=[0.45, 0.25, 0.20, 0.10]),
-        "Region": np.random.choice(regions, size=200),
-        "Revenue": np.random.exponential(scale=1200, size=200).round(2) + 150,
-        "Units": np.random.randint(1, 15, size=200),
-        "Rating": np.random.choice([3.5, 4.0, 4.5, 5.0], size=200, p=[0.1, 0.2, 0.4, 0.3]),
-        "Status": np.random.choice(statuses, size=200, p=[0.75, 0.12, 0.08, 0.05])
-    })
-    return df
+def init_state():
+    defaults = {
+        "step": 1, "participants": [],
+        "result": None, "analysis_complete": False, "use_mock": False,
+        "participant_role_choice": "Member", "selected_team_idx": 0,
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
 
-df_master = load_sample_dataset()
 
-# -----------------------------------------------------------------------------
-# 4. SIDEBAR NAVIGATION & FILTERS
-# -----------------------------------------------------------------------------
+def reset_workflow():
+    st.session_state.step = 1
+    st.session_state.participants = []
+    st.session_state.result = None
+    st.session_state.analysis_complete = False
+    st.session_state.participant_role_choice = "Member"
+    st.session_state.selected_team_idx = 0
+
+
+def stepper(current):
+    steps = [("01", "PARTICIPANTS"), ("02", "MATCH"),
+             ("03", "BALANCE"), ("04", "LAUNCH")]
+    html = '<div class="stepper">'
+    for i, (num, label) in enumerate(steps, 1):
+        cls = "done" if i < current else ("active" if i == current else "")
+        txt = "✓" if i < current else num
+        lcls = "active" if i == current else ""
+        html += f'<div class="step-item"><div><div class="step-circle {cls}">{txt}</div><div class="step-label {lcls}">{label}</div></div>'
+        if i < len(steps):
+            html += f'<div class="step-line {"done" if i < current else ""}"></div>'
+        html += '</div>'
+    st.markdown(html + '</div>', unsafe_allow_html=True)
+
+
+def get_leaders():
+    return [p for p in st.session_state.participants if p.get("role") == "leader"]
+
+
+def get_members():
+    return [p for p in st.session_state.participants if p.get("role") != "leader"]
+
+
+def participant_card(i, p):
+    name = p.get("name", "Unnamed")
+    bio = p.get("bio", "") or "No bio provided"
+    github = p.get("github", "")
+    is_leader = p.get("role") == "leader"
+    role_badge = f'<span class="role-badge {"leader" if is_leader else "member"}">{"👑 Leader" if is_leader else "🙋 Member"}</span>'
+    idea = p.get("project_idea", "")
+    idea_html = f'<br><b>💡 Idea:</b> {idea}' if is_leader and idea else ""
+    c1, c2 = st.columns([5, 1])
+    with c1:
+        link = f"<br>🔗 {github}" if github else ""
+        st.markdown(
+            f'<div class="card"><div class="pname">👤 {name}{role_badge}</div><div class="meta">{bio}{link}{idea_html}</div></div>',
+            unsafe_allow_html=True,
+        )
+    with c2:
+        if st.button("Remove", key=f"remove_{i}", use_container_width=True):
+            st.session_state.participants.pop(i)
+            st.rerun()
+
+
+init_state()
+
+st.markdown('<div class="h-title">🚀 HackOps</div>', unsafe_allow_html=True)
+st.markdown('<div class="h-sub">AI-powered hackathon team formation and 48-hour launch planning</div>', unsafe_allow_html=True)
+stepper(st.session_state.step)
+
 with st.sidebar:
-    st.markdown("### ⚡ **App Control Panel**")
-    st.markdown("<span class='badge'>v1.0.0 Starter Kit</span>", unsafe_allow_html=True)
-    st.write("")
-    
-    page = st.radio(
-        "Navigation",
-        options=["📊 Dashboard", "📈 Analytics & Charts", "🔍 Data Explorer", "⚙️ Interactive Form"],
-        index=0
-    )
-    
-    st.divider()
-    
-    st.subheader("Global Filters")
-    selected_categories = st.multiselect(
-        "Filter by Category",
-        options=df_master["Category"].unique(),
-        default=df_master["Category"].unique()
-    )
-    
-    selected_regions = st.multiselect(
-        "Filter by Region",
-        options=df_master["Region"].unique(),
-        default=df_master["Region"].unique()
-    )
-    
-    revenue_filter = st.slider(
-        "Minimum Revenue ($)",
-        min_value=float(df_master["Revenue"].min()),
-        max_value=float(df_master["Revenue"].max()),
-        value=float(df_master["Revenue"].min()),
-        step=50.0
-    )
-    
-    st.divider()
-    st.caption("🚀 Built with Streamlit • Customize in `app.py`")
-
-# Apply sidebar filters to dataset
-df_filtered = df_master[
-    (df_master["Category"].isin(selected_categories)) &
-    (df_master["Region"].isin(selected_regions)) &
-    (df_master["Revenue"] >= revenue_filter)
-]
-
-# -----------------------------------------------------------------------------
-# 5. PAGE: DASHBOARD OVERVIEW
-# -----------------------------------------------------------------------------
-if page == "📊 Dashboard":
-    st.markdown('<div class="hero-title">Executive Dashboard</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-subtitle">Real-time performance metrics and revenue analytics</div>', unsafe_allow_html=True)
-    
-    # KPI Metrics Row
-    col1, col2, col3, col4 = st.columns(4)
-    
-    total_revenue = df_filtered["Revenue"].sum()
-    total_orders = len(df_filtered)
-    avg_order_value = df_filtered["Revenue"].mean() if total_orders > 0 else 0
-    avg_rating = df_filtered["Rating"].mean() if total_orders > 0 else 0
-    
-    with col1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Total Revenue</div>
-            <div class="metric-value">${total_revenue:,.2f}</div>
-            <div class="metric-delta delta-positive">▲ +14.2% vs last month</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Total Transactions</div>
-            <div class="metric-value">{total_orders:,}</div>
-            <div class="metric-delta delta-positive">▲ +8.1% vs last month</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Avg. Deal Size</div>
-            <div class="metric-value">${avg_order_value:,.2f}</div>
-            <div class="metric-delta delta-negative">▼ -2.4% vs last month</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col4:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-title">Customer Satisfaction</div>
-            <div class="metric-value">{avg_rating:.2f} / 5.0</div>
-            <div class="metric-delta delta-positive">★ 94% positive</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.write("")
-    st.write("")
-
-    # Visualizations Row
-    chart_col1, chart_col2 = st.columns([3, 2])
-    
-    with chart_col1:
-        st.subheader("Revenue Trend Over Time")
-        daily_trend = df_filtered.sort_values("Date").groupby("Date")["Revenue"].sum().reset_index()
-        
-        if PLOTLY_AVAILABLE:
-            fig_trend = px.line(
-                daily_trend,
-                x="Date",
-                y="Revenue",
-                template="plotly_dark",
-                color_discrete_sequence=["#6366F1"]
-            )
-            fig_trend.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=20, r=20, t=20, b=20),
-                xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)"),
-                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)")
-            )
-            st.plotly_chart(fig_trend, use_container_width=True)
+    st.markdown("### HackOps")
+    st.caption("Match multiple project Leaders with balanced 4-person teams.")
+    mock = st.checkbox("Use built-in demo data", value=st.session_state.use_mock)
+    if mock != st.session_state.use_mock:
+        st.session_state.use_mock = mock
+        if mock:
+            demo_participants = [dict(p) for p in MOCK_PARTICIPANTS]
+            if demo_participants:
+                demo_participants[0]["role"] = "leader"
+                demo_participants[0]["project_idea"] = MOCK_PROJECT
+                for p in demo_participants[1:]:
+                    p.setdefault("role", "member")
+            st.session_state.participants = demo_participants
+            st.session_state.result = None
+            st.session_state.analysis_complete = False
+            st.session_state.step = 1
+            st.session_state.participant_role_choice = "Member"
+            st.session_state.selected_team_idx = 0
         else:
-            st.line_chart(daily_trend.set_index("Date")["Revenue"])
-            
-    with chart_col2:
-        st.subheader("Revenue by Category")
-        cat_data = df_filtered.groupby("Category")["Revenue"].sum().reset_index()
-        
-        if PLOTLY_AVAILABLE:
-            fig_pie = px.donut(
-                cat_data,
-                values="Revenue",
-                names="Category",
-                template="plotly_dark",
-                hole=0.55,
-                color_discrete_sequence=["#6366F1", "#A855F7", "#EC4899", "#3B82F6"]
-            )
-            fig_pie.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=20, r=20, t=20, b=20),
-                showlegend=True
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
-        else:
-            st.bar_chart(cat_data.set_index("Category")["Revenue"])
+            reset_workflow()
+    if st.button("↻ Start over", use_container_width=True):
+        reset_workflow()
+        st.rerun()
 
-    # Recent Transactions Table
-    st.write("")
-    st.subheader("Recent Transactions")
-    st.dataframe(
-        df_filtered.sort_values("Date", ascending=False).head(8),
-        use_container_width=True,
-        hide_index=True
-    )
+# STEP 1 — PARTICIPANTS
+if st.session_state.step == 1:
+    st.markdown("## 01 — Participants")
+    st.write("Add every hacker separately. Any number of participants can be a **Leader** — "
+              f"each Leader pitches their own project idea and gets matched a team of {TEAM_SIZE_MEMBERS} Members.")
+    count = len(st.session_state.participants)
+    leaders = get_leaders()
+    members = get_members()
+    st.markdown(f'<span class="badge">{count} participants · {len(leaders)} Leader(s) · {len(members)} Member(s)</span>', unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------
-# 6. PAGE: ANALYTICS & CHARTS
-# -----------------------------------------------------------------------------
-elif page == "📈 Analytics & Charts":
-    st.markdown('<div class="hero-title">Deep Dive Analytics</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-subtitle">Multi-dimensional exploration of metrics & distributions</div>', unsafe_allow_html=True)
-    
-    col_a, col_b = st.columns(2)
-    
-    with col_a:
-        st.subheader("Regional Revenue Comparison")
-        region_df = df_filtered.groupby("Region")["Revenue"].sum().reset_index()
-        if PLOTLY_AVAILABLE:
-            fig_bar = px.bar(
-                region_df,
-                x="Region",
-                y="Revenue",
-                color="Region",
-                template="plotly_dark",
-                color_discrete_sequence=px.colors.qualitative.Prism
+    st.markdown("### Projects")
+    if leaders:
+        for leader in leaders:
+            st.markdown(
+                f'<div class="leader-card"><div class="project-title">🚀 {leader.get("project_idea", "")[:140]}</div>'
+                f'<span class="meta"><span class="leader-crown">👑</span> Led by <b>{leader.get("name", "Unknown")}</b></span></div>',
+                unsafe_allow_html=True,
             )
-            fig_bar.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=10, r=10, t=20, b=10),
-                showlegend=False
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
-        else:
-            st.bar_chart(region_df.set_index("Region"))
-
-    with col_b:
-        st.subheader("Deal Size vs Units Sold")
-        if PLOTLY_AVAILABLE:
-            fig_scatter = px.scatter(
-                df_filtered,
-                x="Units",
-                y="Revenue",
-                color="Category",
-                size="Rating",
-                hover_data=["Customer", "Status"],
-                template="plotly_dark"
-            )
-            fig_scatter.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=10, r=10, t=20, b=10)
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        else:
-            st.scatter_chart(df_filtered, x="Units", y="Revenue")
-
-    st.write("")
-    st.subheader("Transaction Status Breakdown")
-    status_df = df_filtered.groupby(["Category", "Status"]).size().reset_index(name="Count")
-    if PLOTLY_AVAILABLE:
-        fig_status = px.bar(
-            status_df,
-            x="Category",
-            y="Count",
-            color="Status",
-            barmode="stack",
-            template="plotly_dark"
-        )
-        fig_status.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=20, b=10)
-        )
-        st.plotly_chart(fig_status, use_container_width=True)
     else:
-        st.dataframe(status_df, use_container_width=True)
+        st.info("No projects yet. Add a **Leader** below — their idea will appear here for everyone to see.")
 
-# -----------------------------------------------------------------------------
-# 7. PAGE: DATA EXPLORER & CSV EXPORT
-# -----------------------------------------------------------------------------
-elif page == "🔍 Data Explorer":
-    st.markdown('<div class="hero-title">Data Explorer</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-subtitle">Search, filter, inspect, and export your data</div>', unsafe_allow_html=True)
-    
-    tab1, tab2 = st.tabs(["📋 Filtered Data", "📤 Upload Custom Data"])
-    
-    with tab1:
-        search_query = st.text_input("🔍 Search by Customer Name or ID", "")
-        
-        display_df = df_filtered.copy()
-        if search_query:
-            display_df = display_df[
-                display_df["Customer"].str.contains(search_query, case=False, na=False) |
-                display_df["Transaction ID"].str.contains(search_query, case=False, na=False)
-            ]
-            
-        st.write(f"Showing **{len(display_df)}** records matching active filters.")
-        st.dataframe(display_df, use_container_width=True)
-        
-        # Download buttons
-        csv_data = display_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Export Filtered Data as CSV",
-            data=csv_data,
-            file_name=f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv"
-        )
-        
-    with tab2:
-        st.subheader("Analyze Your Own CSV")
-        uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
-        if uploaded_file is not None:
-            user_df = pd.read_csv(uploaded_file)
-            st.success(f"Successfully loaded {len(user_df)} rows and {len(user_df.columns)} columns!")
-            st.dataframe(user_df.head(20), use_container_width=True)
-            
-            st.write("### Quick Statistics")
-            st.write(user_df.describe())
+    st.divider()
+    st.markdown("### Add participant")
+    st.caption("You can add as many Leaders as needed — each running their own project — plus a shared pool of Members.")
+    role_choice = st.radio("Participant type *", ["Member", "Leader"], horizontal=True, key="participant_role_choice")
 
-# -----------------------------------------------------------------------------
-# 8. PAGE: INTERACTIVE FORM & STATE MANAGEMENT
-# -----------------------------------------------------------------------------
-elif page == "⚙️ Interactive Form":
-    st.markdown('<div class="hero-title">Interactive Input & Submission</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-subtitle">Test forms, validation, and session state persistence</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.subheader("Add New Transaction")
-        with st.form("new_transaction_form", clear_on_submit=True):
-            f_customer = st.text_input("Customer Name", placeholder="e.g. Acme Corp")
-            f_category = st.selectbox("Product Category", ["SaaS Subscription", "Enterprise License", "Professional Services", "Hardware Add-on"])
-            f_region = st.selectbox("Region", ["North America", "Europe", "Asia-Pacific", "Latin America"])
-            f_revenue = st.number_input("Revenue ($)", min_value=10.0, max_value=100000.0, value=1500.0, step=100.0)
-            f_units = st.slider("Units", min_value=1, max_value=50, value=1)
-            f_status = st.selectbox("Status", ["Completed", "Pending", "Processing"])
-            
-            submitted = st.form_submit_button("Submit Transaction", use_container_width=True)
-            
-            if submitted:
-                if not f_customer.strip():
-                    st.error("Please provide a valid customer name.")
-                else:
-                    new_entry = {
-                        "Transaction ID": f"TRX-{2000 + len(st.session_state.records)}",
-                        "Date": datetime.now(),
-                        "Customer": f_customer,
-                        "Category": f_category,
-                        "Region": f_region,
-                        "Revenue": f_revenue,
-                        "Units": f_units,
-                        "Rating": 5.0,
-                        "Status": f_status
-                    }
-                    st.session_state.records.append(new_entry)
-                    st.toast(f"Transaction for {f_customer} recorded!", icon="✅")
-                    st.success(f"Added new record: **{f_customer}** - ${f_revenue:,.2f}")
-    
-    with col2:
-        st.subheader("Live Session Submissions")
-        if st.session_state.records:
-            recent_sub_df = pd.DataFrame(st.session_state.records)
-            st.dataframe(recent_sub_df, use_container_width=True)
-            if st.button("🗑️ Clear Session Submissions"):
-                st.session_state.records = []
-                st.rerun()
+    with st.form("participant_form", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        with c1:
+            name = st.text_input("Name *", placeholder="e.g. Hadia")
+        with c2:
+            github = st.text_input("GitHub URL (optional)", placeholder="https://github.com/username")
+        bio = st.text_area("Bio / skills *", height=120,
+                           placeholder="e.g. Frontend developer with React, JavaScript and Streamlit experience.")
+        idea = ""
+        if role_choice == "Leader":
+            st.markdown("---")
+            idea = st.text_area(
+                "Hackathon project idea * (as a team leader)", height=140,
+                placeholder="Example: Build an AI-powered daily footstep counter that tracks walking activity and gives simple insights."
+            )
+        add = st.form_submit_button("＋ Add Participant", type="primary", use_container_width=True)
+
+    if add:
+        if not name.strip():
+            st.error("Please enter the participant's name.")
+        elif not bio.strip() and not github.strip():
+            st.error("Add a bio/skills description or a GitHub URL.")
+        elif role_choice == "Leader" and not idea.strip():
+            st.error("As a team leader, please provide the hackathon project idea.")
         else:
-            st.info("No new transactions submitted in this session yet. Use the form on the left to add entries.")
+            participant = {
+                "name": name.strip(),
+                "bio": bio.strip(),
+                "github": github.strip(),
+                "role": "leader" if role_choice == "Leader" else "member",
+            }
+            if role_choice == "Leader":
+                participant["project_idea"] = idea.strip()
+            st.session_state.participants.append(participant)
+            st.success(f"{name.strip()} added successfully.")
+            st.rerun()
+
+    st.divider()
+    st.markdown("### Your participants")
+    if not st.session_state.participants:
+        st.markdown('<div class="card"><b>No participants added yet.</b><br><span class="meta">Add at least one Leader (with a project idea) and 3 Members to form a team.</span></div>', unsafe_allow_html=True)
+    else:
+        for i, p in enumerate(st.session_state.participants):
+            participant_card(i, p)
+
+    st.divider()
+    ready = len(leaders) >= 1 and len(members) >= TEAM_SIZE_MEMBERS
+    c1, _ = st.columns([1, 1])
+    with c1:
+        if st.button("Continue →", type="primary", disabled=not ready, use_container_width=True):
+            st.session_state.step = 2
+            st.rerun()
+    if not leaders:
+        st.warning("Add at least one Leader with a project idea to continue.")
+    elif len(members) < TEAM_SIZE_MEMBERS:
+        n = TEAM_SIZE_MEMBERS - len(members)
+        st.warning(f"Add {n} more Member{'s' if n != 1 else ''} to form a full team.")
+
+# STEP 2 — AI MATCH
+elif st.session_state.step == 2:
+    st.markdown("## 02 — AI Match")
+    st.write(f"HackOps runs one match per project. Each Leader is paired with the {TEAM_SIZE_MEMBERS} best-fit "
+             "Members from the shared pool, using semantic search and complementary-skill scoring.")
+    if not st.session_state.analysis_complete:
+        st.markdown('<div class="card"><b>Ready to build the teams?</b><br><span class="meta">This runs profile parsing, per-project analysis, FAISS search, team matching, balance evaluation and sprint planning — once for every Leader\'s project.</span></div>', unsafe_allow_html=True)
+        if st.button("🚀 Build HackOps Teams", type="primary", use_container_width=True):
+            stage = "validating participants"
+            try:
+                participants = st.session_state.participants
+                validate_participants(participants)
+
+                progress = st.progress(0)
+                status = st.empty()
+
+                stage = "parsing participant profiles"
+                status.write("Understanding participant profiles...")
+                all_profiles = []
+                for p in participants:
+                    profile = parse_participant(p)
+                    profile["role"] = p.get("role", "member")
+                    if p.get("role") == "leader":
+                        profile["project_idea"] = p.get("project_idea", "")
+                    all_profiles.append(profile)
+                progress.progress(15)
+
+                leader_profiles = [p for p in all_profiles if p.get("role") == "leader"]
+                member_pool = [p for p in all_profiles if p.get("role") != "leader"]
+
+                teams = []
+                skipped_projects = []
+                total = max(1, len(leader_profiles))
+                span = 80 / total
+
+                for li, leader_profile in enumerate(leader_profiles, 1):
+                    leader_name = leader_profile.get("name", "the Leader")
+                    base = 15 + span * (li - 1)
+
+                    stage = f"analyzing the project idea for {leader_name}"
+                    status.write(f"Project {li}/{total}: analyzing {leader_name}'s idea...")
+                    project = analyze_project(leader_profile.get("project_idea", ""))
+                    progress.progress(int(base + span * 0.25))
+
+                    if len(member_pool) < TEAM_SIZE_MEMBERS:
+                        skipped_projects.append(leader_name)
+                        continue
+
+                    stage = f"matching members for {leader_name}"
+                    status.write(f"Project {li}/{total}: matching Members for {leader_name}...")
+                    index, indexed_profiles = build_profile_index(member_pool)
+                    candidates = search_candidates(index, indexed_profiles, project, top_k=len(indexed_profiles))
+                    progress.progress(int(base + span * 0.5))
+
+                    chosen = form_team(candidates, project, team_size=TEAM_SIZE_MEMBERS)
+                    chosen_names = {c.get("name") for c in chosen}
+                    member_pool = [m for m in member_pool if m.get("name") not in chosen_names]
+
+                    leader_member = dict(leader_profile)
+                    leader_member["assigned_role"] = "Team Leader"
+                    leader_member["selection_reason"] = "Team Leader — pitched and owns this project idea."
+                    full_team = [leader_member] + chosen
+
+                    stage = f"evaluating team balance for {leader_name}"
+                    balance = evaluate_team(full_team, project)
+                    progress.progress(int(base + span * 0.75))
+
+                    stage = f"generating the launch plan for {leader_name}"
+                    sprint = generate_sprint_plan(full_team, project, balance)
+                    progress.progress(int(base + span))
+
+                    teams.append({
+                        "leader_name": leader_name,
+                        "project": project,
+                        "team": full_team,
+                        "balance": balance,
+                        "sprint": sprint,
+                    })
+
+                progress.progress(100)
+                st.session_state.result = {
+                    "teams": teams,
+                    "leftover_members": member_pool,
+                    "skipped_projects": skipped_projects,
+                }
+                st.session_state.analysis_complete = True
+                st.session_state.selected_team_idx = 0
+                status.success("HackOps finished matching all possible teams.")
+                st.rerun()
+            except Exception as exc:
+                st.error(f"HackOps could not complete the analysis while {stage}: {exc}")
+    else:
+        result = st.session_state.result
+        teams = result.get("teams", [])
+        leftover = result.get("leftover_members", [])
+        skipped = result.get("skipped_projects", [])
+
+        if not teams:
+            st.warning("No teams could be formed yet. Add more Members and try again.")
+        else:
+            st.success(f"{len(teams)} project team{'s' if len(teams) != 1 else ''} matched.")
+            for t in teams:
+                leader = t["team"][0]
+                squad = t["team"][1:]
+                st.markdown(
+                    f'<div class="leader-card"><div class="project-title">🚀 {t["project"].get("summary", "Project")}</div>'
+                    f'<span class="meta"><span class="leader-crown">👑</span> Leader: <b>{leader.get("name", "Unknown")}</b></span></div>',
+                    unsafe_allow_html=True,
+                )
+                for i, member in enumerate(squad, 1):
+                    c1, c2 = st.columns([1, 5])
+                    with c1: st.markdown(f"### {i:02d}")
+                    with c2:
+                        name = member.get("name", "Unnamed")
+                        role = member.get("assigned_role") or member.get("primary_role", "Team Member")
+                        skills = member.get("skills", [])
+                        reason = member.get("selection_reason", "")
+                        st.markdown(f"**{name}**")
+                        st.markdown(f'<div class="role">{role}</div>', unsafe_allow_html=True)
+                        if skills: st.caption(" • ".join(skills[:8]))
+                        if reason: st.write(reason)
+                st.divider()
+
+        if leftover:
+            if len(leftover) == 1:
+                msg = (f"🌟 Great turnout! **{leftover[0].get('name', 'One participant')}** is still free after "
+                       "matching. Maybe they'd like to pitch a project idea and step up as a Leader for the next team?")
+            else:
+                names = ", ".join(m.get("name", "Someone") for m in leftover)
+                msg = (f"🌟 Great turnout! **{names}** are still free after matching. Maybe one of them would "
+                       "like to pitch a project idea and step up as a Leader for the next team?")
+            st.info(msg)
+
+        if skipped:
+            st.warning("Not enough Members were left to build a team for: " + ", ".join(skipped) +
+                       ". Add more Members to cover every project.")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("← Change participants", use_container_width=True):
+                st.session_state.analysis_complete = False
+                st.session_state.result = None
+                st.session_state.step = 1
+                st.rerun()
+        with c2:
+            if st.button("View team balance →", type="primary", use_container_width=True, disabled=not teams):
+                st.session_state.step = 3
+                st.rerun()
+
+# STEP 3 — TEAM BALANCE
+elif st.session_state.step == 3:
+    st.markdown("## 03 — Team Balance")
+    st.write("Understand each project team's coverage, strengths and remaining gaps.")
+    teams = (st.session_state.result or {}).get("teams", [])
+    if not teams:
+        st.warning("Build teams first.")
+        if st.button("Go to AI Match →", type="primary"): st.session_state.step = 2; st.rerun()
+    else:
+        if len(teams) > 1:
+            idx = st.selectbox(
+                "Select a project team",
+                options=list(range(len(teams))),
+                index=min(st.session_state.selected_team_idx, len(teams) - 1),
+                format_func=lambda i: f"👑 {teams[i]['leader_name']}'s project",
+            )
+            st.session_state.selected_team_idx = idx
+        else:
+            idx = 0
+        t = teams[idx]
+
+        balance = t["balance"]
+        overall = balance.get("overall_score", 0)
+        coverage = balance.get("coverage_score", 0)
+        diversity = balance.get("role_diversity_score", 0)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Overall team fit", f"{overall:.0f}/100")
+        c2.metric("Capability coverage", f"{coverage:.0f}/100")
+        c3.metric("Role diversity", f"{diversity:.0f}/100")
+        st.divider()
+        left, right = st.columns(2)
+        with left:
+            st.markdown("### ✅ Strengths")
+            for x in balance.get("strengths", []) or ["No specific strengths returned."]: st.success(str(x))
+        with right:
+            st.markdown("### ⚠️ Gaps")
+            gaps = balance.get("gaps", [])
+            if gaps:
+                for x in gaps: st.warning(str(x))
+            else: st.success("No major capability gaps detected.")
+        st.divider()
+        if st.button("Generate 48-hour launch plan →", type="primary", use_container_width=True): st.session_state.step = 4; st.rerun()
+        if st.button("← Back to match", use_container_width=True): st.session_state.step = 2; st.rerun()
+
+# STEP 4 — LAUNCH
+else:
+    st.markdown("## 04 — 48-Hour Launch")
+    st.write("Each project team gets its own execution plan.")
+    teams = (st.session_state.result or {}).get("teams", [])
+    if not teams:
+        st.warning("Build and evaluate teams first.")
+    else:
+        if len(teams) > 1:
+            idx = st.selectbox(
+                "Select a project team",
+                options=list(range(len(teams))),
+                index=min(st.session_state.selected_team_idx, len(teams) - 1),
+                format_func=lambda i: f"👑 {teams[i]['leader_name']}'s project",
+                key="launch_team_select",
+            )
+            st.session_state.selected_team_idx = idx
+        else:
+            idx = 0
+        t = teams[idx]
+        project, sprint = t["project"], t["sprint"]
+
+        st.markdown("### Project")
+        st.markdown(f'<div class="card"><b>{project.get("summary", "Hackathon project")}</b><br><br><span class="meta">MVP Goal: {project.get("mvp_goal", "Not specified")}</span></div>', unsafe_allow_html=True)
+        st.markdown("### 48-hour roadmap")
+        for phase in sprint.get("phases", []) or []:
+            title = phase.get("title", phase.get("name", "Phase"))
+            timebox = phase.get("timebox", phase.get("time_window", ""))
+            with st.expander(f"{title}{' — ' + timebox if timebox else ''}", expanded=True):
+                if phase.get("objective") or phase.get("goal"):
+                    st.markdown(f"**Objective:** {phase.get('objective') or phase.get('goal')}")
+                for task in phase.get("tasks", []) or []:
+                    if isinstance(task, dict):
+                        text = f"- **{task.get('task', 'Task')}**"
+                        if task.get("owner"): text += f" — Owner: {task['owner']}"
+                        if task.get("deliverable"): text += f" — Deliverable: {task['deliverable']}"
+                        st.markdown(text)
+                    else: st.markdown(f"- {task}")
+        st.divider()
+        st.markdown("### Milestones")
+        for m in sprint.get("milestones", []) or []:
+            if isinstance(m, dict):
+                text = f"**{m.get('name', m.get('time', 'Milestone'))}**"
+                if m.get("target_time"): text += f" — {m['target_time']}"
+                if m.get("deliverable"): text += f"<br><span class='meta'>{m['deliverable']}</span>"
+                st.markdown(text, unsafe_allow_html=True)
+            else: st.markdown(f"- {m}")
+        st.divider()
+        st.markdown("### 🎤 Demo-day checklist")
+        for i, item in enumerate(sprint.get("demo_checklist", []) or []): st.checkbox(str(item), key=f"demo_{idx}_{i}")
+        raw = {"project": project, "team": t["team"], "balance": t["balance"], "sprint": sprint}
+        st.download_button("⬇ Download this team's JSON", json.dumps(raw, indent=2, ensure_ascii=False), f"hackops_{t['leader_name']}.json", "application/json", use_container_width=True, key=f"download_{idx}")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("← Team balance", use_container_width=True): st.session_state.step = 3; st.rerun()
+        with c2:
+            if st.button("🚀 Start a new HackOps project", type="primary", use_container_width=True): reset_workflow(); st.rerun()
