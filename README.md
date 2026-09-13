@@ -1,200 +1,86 @@
-# HackOps 🚀
+# 🚀 HackOps — AI Hackathon Squad Matcher & 48-Hour Launchpad
 
-HackOps is a modular Streamlit MVP that turns messy hackathon participant profiles and a project idea into a balanced four-person squad and a practical 48-hour execution plan.
+> **Transforming messy hackathon bios and project pitches into balanced 4-person dream teams with instant 48-hour execution roadmaps.**
 
-## What it does
+---
 
-1. Parses messy participant bios into structured JSON profiles.
-2. Analyzes a hackathon project idea into MVP capabilities and roles.
-3. Embeds participant profiles with `all-MiniLM-L6-v2`.
-4. Builds a local FAISS semantic-search index.
-5. Retrieves relevant candidates.
-6. Forms a complementary 4-person team.
-7. Evaluates project capability coverage and team fit.
-8. Generates a structured 48-hour sprint roadmap using Groq `openai/gpt-oss-120b`.
+## 🎯 The Problem
 
-## Architecture
+Solo hackathon participants waste critical opening hours struggling to find compatible teammates, often ending up in unbalanced groups—like **four backend coders with no UI or pitch lead**—that ultimately fail to deliver a working demo.
 
-```text
-Participant Bios ──> Profile Parser ──> Structured Profiles
-                                             │
-                                             ▼
-                                      Embeddings + FAISS
-                                             │
-Project Idea ──────> Project Analyzer ───────┤
-                                             ▼
-                                      Team Matcher
-                                             │
-                                             ▼
-                                      Team Balance
-                                             │
-                                             ▼
-                                      Sprint Planner
-                                             │
-                                             ▼
-                                        Streamlit UI
+## ⚡ Our Solution
+
+An intelligent AI launch platform where:
+1. **Leaders** pitch their project ideas and target MVP vision.
+2. **Solo Hackers** paste their messy bio or GitHub link, and our NLP engine automatically extracts their primary role, skills, experience level, and superpowers.
+3. The **AI Squad Matcher** pairs participants into balanced 4-person squads (1 Leader + 3 distinct roles: Frontend/UI, AI/Backend, and Product/Pitch).
+4. The system immediately hands the team an actionable **48-Hour Sprint Roadmap & Kanban Board** with assigned deliverables and a demo-day judge checklist.
+
+---
+
+## 🌟 Key Features
+
+- **💡 Project Pitch Studio**: Create and explore hackathon project briefs with automated capability breakdown (AI/ML, Frontend, Backend, UI/UX, Pitch).
+- **👥 Hacker Lounge & NLP Bio Parser**: Real-time parsing of unstructured text and GitHub profiles into structured skills and superpowers.
+- **⚡ AI Squad Balancer**: Constraint solver ensuring balanced teams with high synergy, capability coverage scoring (0-100%), and role diversity.
+- **⏱ 48-Hour Launchpad**: 4-phase execution plan (Inception 0-6h, Core MVP 6-24h, Polish 24-38h, Pitch & Submission 38-48h).
+- **🎤 Demo-Day Checklist & Judge Rubric Alignment**: Step-by-step checklist ensuring teams deliver working live demos and pitch effectively.
+- **📥 One-Click Export**: Export full team configurations as JSON or copy sprint roadmaps as Markdown for Discord/Slack.
+
+---
+
+## 🖥️ How to Run the Web Application
+
+### Instant Browser Launch
+Simply open `index.html` in any modern web browser:
+
+```bash
+# On Windows
+start index.html
+
+# On macOS
+open index.html
+
+# On Linux
+xdg-open index.html
 ```
 
-## Project structure
+---
+
+## 🏗️ Architecture & Project Structure
 
 ```text
 HackOps/
-├── app.py
-├── mock_data.py
-├── profile_parser.py
-├── project_analyzer.py
-├── vector_store.py
-├── team_matcher.py
-├── team_balance.py
-├── sprint_planner.py
-├── prompts.py
-├── utils.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
+├── index.html           # Main modern web application interface
+├── style.css            # Cyber-dark design system & glassmorphism styling
+├── app.js               # Core client-side intelligence, matching & sprint engine
+├── app.py               # Streamlit alternative interface
+├── mock_data.py         # Default demo projects & participant pool
+├── profile_parser.py    # Python Groq LLM profile parser
+├── project_analyzer.py  # Python project requirement decomposition
+├── vector_store.py      # FAISS semantic vector search engine
+├── team_matcher.py      # Python team formation optimizer
+├── team_balance.py      # Python capability coverage & diversity scoring
+├── sprint_planner.py    # Python 48-hour sprint roadmap generator
+└── README.md            # Project documentation
 ```
 
-Each module has one primary responsibility to support SRP, separation of concerns, loose coupling and high cohesion.
+---
 
-## Requirements
+## 🚀 48-Hour Hackathon Execution Phases
 
-- Python 3.10–3.12 recommended
-- A Groq API key
-- Internet access on first run so Sentence Transformers can download `all-MiniLM-L6-v2`
+| Phase | Timebox | Focus & Deliverables |
+| :--- | :--- | :--- |
+| **Phase 1: Inception & Architecture** | Hours 0 – 6 | Lock MVP scope, Git repo, API schemas & Figma wireframes |
+| **Phase 2: Core MVP Build** | Hours 6 – 24 | Core AI inference, responsive UI screens & live backend endpoints |
+| **Phase 3: Polish & Edge Cases** | Hours 24 – 38 | End-to-end testing, animations, error states & backup demo video |
+| **Phase 4: Pitch & Submission** | Hours 38 – 48 | 3-minute pitch rehearsals, Devpost submission & live judging |
 
-## Setup
+---
 
-### 1. Create a virtual environment
+## 🏆 Judge Rubric Alignment
 
-Windows:
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-```
-
-macOS/Linux:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Configure Groq
-
-Copy `.env.example` to `.env`:
-
-Windows:
-
-```bash
-copy .env.example .env
-```
-
-macOS/Linux:
-
-```bash
-cp .env.example .env
-```
-
-Then put your real key in `.env`:
-
-```env
-GROQ_API_KEY=your_real_key
-```
-
-Never commit `.env` to GitHub.
-
-### 4. Run
-
-```bash
-streamlit run app.py
-```
-
-The browser should open the Streamlit application.
-
-## Demo
-
-The app starts with built-in mock participants and a sample hackathon project.
-
-Click:
-
-```text
-Build HackOps Team
-```
-
-The workflow runs from profile parsing through sprint generation.
-
-To test your own data, uncheck **Use built-in mock data**, enter a project idea, and provide at least four participant blocks.
-
-## AI responsibilities
-
-Groq is used for:
-
-- Messy bio interpretation
-- Project requirement analysis
-- Sprint-plan generation
-
-## Python responsibilities
-
-Python handles:
-
-- Streamlit UI
-- Input validation
-- Embedding orchestration
-- FAISS indexing/search
-- Team selection logic
-- Team coverage scoring
-- JSON parsing and validation
-- Workflow orchestration
-
-## FAISS
-
-FAISS is used locally with normalized vectors and inner-product similarity. No hosted vector database is required.
-
-## Structured JSON
-
-AI modules request JSON and parse the response before it moves to the next workflow stage. The final application also exposes the complete structured result as a downloadable JSON file.
-
-## GitHub URL note
-
-The MVP accepts a GitHub field in the profile data model, but it does not scrape GitHub repositories. This keeps the first version focused and avoids introducing GitHub API authentication/rate-limit complexity. A future GitHub connector can populate the same profile-parser input without changing the rest of the architecture.
-
-## Streamlit Cloud deployment
-
-1. Push these files to a GitHub repository.
-2. Create a Streamlit Cloud app from the repository.
-3. Select `app.py` as the main file.
-4. Add the secret:
-
-```toml
-GROQ_API_KEY = "your_real_key"
-```
-
-The application code reads the same environment variable, so it works with both `.env` locally and Streamlit secrets/environment configuration.
-
-## Limitations of the MVP
-
-- Team formation uses deterministic Python scoring after semantic retrieval; it is not a global optimization solver.
-- GitHub URLs are stored but not scraped.
-- FAISS is in-memory during the Streamlit session.
-- The embedding model is downloaded on first use.
-- Team-fit scoring is a heuristic and should be treated as decision support, not an objective measurement.
-
-## Future enhancements
-
-- GitHub API integration
-- Persistent participant database
-- Persistent FAISS index
-- Multi-team optimization
-- Skill-level weighting
-- Availability/time-zone constraints
-- Judge rubric matching
-- Automatic GitHub repository creation
-- Task tracking and teammate collaboration
+1. **Innovation & Technical Depth (30%)**: Clear AI value-add and architectural elegance over trivial wrappers.
+2. **Working Demo Execution (30%)**: Live user interaction flow without relying on static mock screenshots.
+3. **UX & Visual Polish (20%)**: Intuitive glassmorphism interface and responsive feedback loops.
+4. **Presentation & Business Impact (20%)**: Memorable 3-minute pitch answering "Why now?" and realistic viability.

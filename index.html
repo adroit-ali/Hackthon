@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HackOps | AI Hackathon Squad Matcher & 48-Hour Launchpad</title>
+  <meta name="description" content="AI-powered hackathon platform pairing solo participants into balanced 4-person teams with instant 48-hour execution sprint roadmaps.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="#" class="brand" onclick="switchTab('projects'); return false;">
+        <div class="brand-icon">🚀</div>
+        <span>HackOps</span>
+        <span class="brand-badge">AI Launchpad</span>
+      </a>
+
+      <!-- Central Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab-btn active" data-tab="projects" id="tab-btn-projects">
+          <span>💡</span> Projects & Pitch
+        </button>
+        <button class="nav-tab-btn" data-tab="members" id="tab-btn-members">
+          <span>👥</span> Hacker Lounge
+        </button>
+        <button class="nav-tab-btn" data-tab="matcher" id="tab-btn-matcher">
+          <span>⚡</span> AI Squads & Balance
+        </button>
+        <button class="nav-tab-btn" data-tab="launchpad" id="tab-btn-launchpad">
+          <span>⏱</span> 48h Launchpad
+        </button>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="nav-actions">
+        <button class="btn btn-secondary btn-sm" onclick="resetAllData()" title="Reset to default demo data">
+          ↻ Reset Demo
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-participant')">
+          ＋ Add Hacker / Lead
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Content -->
+  <main class="container" style="padding-bottom: 5rem;">
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-pill">
+        <span class="dot"></span>
+        <span>AI-Powered Autonomous Team Optimization</span>
+      </div>
+      <h1 class="hero-title">
+        Stop Building Unbalanced Teams.<br>
+        <span class="gradient-text-accent">Launch 4-Person Squads in Minutes.</span>
+      </h1>
+      <p class="hero-subtitle">
+        HackOps pairs project leaders with complementary solo participants—preventing all-backend deadlocks—and immediately generates a customized 48-hour sprint execution roadmap.
+      </p>
+
+      <!-- Live Quick Stats -->
+      <div class="hero-stats">
+        <div class="stat-card">
+          <div class="stat-number" id="stat-projects">3</div>
+          <div class="stat-label">Pitched Projects</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-hackers">8</div>
+          <div class="stat-label">Hackers in Pool</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-squads">0</div>
+          <div class="stat-label">Active Squads</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-balance" style="color: var(--accent-emerald);">94%</div>
+          <div class="stat-label">Synergy Score</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Visual Interactive Stepper -->
+    <div class="stepper-container">
+      <div class="stepper">
+        <div class="step-node active" data-step="1">
+          <div class="step-circle">01</div>
+          <div class="step-meta">
+            <span class="step-tag">Step 1</span>
+            <span class="step-title">Pitch & Projects</span>
+          </div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-node" data-step="2">
+          <div class="step-circle">02</div>
+          <div class="step-meta">
+            <span class="step-tag">Step 2</span>
+            <span class="step-title">Hacker Pool</span>
+          </div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-node" data-step="3">
+          <div class="step-circle">03</div>
+          <div class="step-meta">
+            <span class="step-tag">Step 3</span>
+            <span class="step-title">AI Squad Balance</span>
+          </div>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-node" data-step="4">
+          <div class="step-circle">04</div>
+          <div class="step-meta">
+            <span class="step-tag">Step 4</span>
+            <span class="step-title">48h Execution</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: Projects & Pitch Studio -->
+    <section id="tab-projects" class="tab-content" style="display: block;">
+      <div class="card-header" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2 style="font-size: 1.5rem; font-weight: 800;">💡 Hackathon Project Pitches</h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            Projects submitted by team leaders looking for complementary talent to build a working demo.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="btn btn-secondary" onclick="openModal('modal-add-project')">
+            ＋ Pitch Project
+          </button>
+          <button class="btn btn-primary" onclick="runSquadMatching()">
+            ⚡ Match All Squads →
+          </button>
+        </div>
+      </div>
+
+      <div class="grid-3" id="projects-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- TAB 2: Hacker Lounge -->
+    <section id="tab-members" class="tab-content" style="display: none;">
+      <div class="card-header" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2 style="font-size: 1.5rem; font-weight: 800;">👥 Solo Hacker Talent Pool</h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            Participants who pasted their raw bio or GitHub profiles. Parsed into distinct roles and superpowers.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="btn btn-primary" onclick="openModal('modal-add-participant')">
+            ＋ Add Hacker / Bio
+          </button>
+          <button class="btn btn-emerald" onclick="runSquadMatching()">
+            ⚡ Form Balanced Squads →
+          </button>
+        </div>
+      </div>
+
+      <div class="grid-4" id="members-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- TAB 3: AI Squads & Balance Studio -->
+    <section id="tab-matcher" class="tab-content" style="display: none;">
+      <div class="card-header" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2 style="font-size: 1.5rem; font-weight: 800;">⚡ AI Squad Matcher & Balance Studio</h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            Complementary 4-person squads (1 Leader + 3 distinct roles) with capability coverage scoring and gap mitigation.
+          </p>
+        </div>
+        <div>
+          <button class="btn btn-primary" onclick="runSquadMatching()">
+            ↻ Re-Run Matcher
+          </button>
+        </div>
+      </div>
+
+      <div id="squads-container">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- TAB 4: 48h Launchpad & Execution Engine -->
+    <section id="tab-launchpad" class="tab-content" style="display: none;">
+      <div id="launchpad-container">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Add Participant (Bio / Lead) -->
+  <div class="modal-backdrop" id="modal-add-participant">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 style="font-size: 1.15rem; font-weight: 700;">＋ Join HackOps Hacker Pool</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-add-participant')" style="padding: 0.2rem 0.6rem;">✕</button>
+      </div>
+      <form id="form-add-participant">
+        <div class="modal-body">
+          <label class="form-label">Are you pitching a project as a Leader or joining as a Member? *</label>
+          <div class="role-toggle">
+            <div class="role-option">
+              <input type="radio" id="role-member" name="participant-role" value="member" checked>
+              <label for="role-member" class="role-label">🙋 Member (Join a Squad)</label>
+            </div>
+            <div class="role-option">
+              <input type="radio" id="role-leader" name="participant-role" value="leader">
+              <label for="role-leader" class="role-label">👑 Leader (Pitch an Idea)</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="part-name">Full Name or Handle *</label>
+            <input type="text" class="form-input" id="part-name" placeholder="e.g. Maya Lin" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="part-github">GitHub Profile URL (optional)</label>
+            <input type="url" class="form-input" id="part-github" placeholder="https://github.com/username">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="part-bio">Messy Bio, Skills & Experience *</label>
+            <textarea class="form-textarea" id="part-bio" rows="4" placeholder="e.g. CS major with 2 years of React and Next.js experience. Built full-stack apps with FastAPI backends and Tailwind styling. Love rapid prototyping." required></textarea>
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Tip: Paste your raw resume summary or bullet points—our AI will extract your skills automatically.
+            </div>
+          </div>
+
+          <!-- Real-time NLP Bio Preview -->
+          <div id="bio-parse-preview" style="display: none; background: rgba(0,0,0,0.4); border: 1px dashed var(--border-glow); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1.25rem;">
+          </div>
+
+          <!-- Conditional Field for Leaders -->
+          <div class="form-group" id="leader-idea-field" style="display: none;">
+            <label class="form-label" for="part-idea" style="color: #fbbf24;">💡 Hackathon Project Idea *</label>
+            <textarea class="form-textarea" id="part-idea" rows="3" placeholder="Describe the problem, your solution, and what kind of MVP you want to build during the 48 hours."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-participant')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add to HackOps</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Pitch New Project -->
+  <div class="modal-backdrop" id="modal-add-project">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 style="font-size: 1.15rem; font-weight: 700;">💡 Pitch a New Hackathon Project</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-add-project')" style="padding: 0.2rem 0.6rem;">✕</button>
+      </div>
+      <form id="form-add-project">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="new-proj-title">Project Name *</label>
+            <input type="text" class="form-input" id="new-proj-title" placeholder="e.g. HealthPulse AI" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-proj-track">Track / Category</label>
+            <select class="form-select" id="new-proj-track">
+              <option value="AI / LLM & Agents">AI / LLM & Agents</option>
+              <option value="Web3 & Climate">Web3 & Climate</option>
+              <option value="HealthTech & Bio">HealthTech & Bio</option>
+              <option value="Developer Tools & Ops">Developer Tools & Ops</option>
+              <option value="FinTech & Commerce">FinTech & Commerce</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-proj-desc">Problem & Solution Summary *</label>
+            <textarea class="form-textarea" id="new-proj-desc" rows="3" placeholder="What problem does this solve? What is the core user flow?" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-proj-goal">48-Hour MVP Target Goal</label>
+            <input type="text" class="form-input" id="new-proj-goal" placeholder="e.g. Working web app with live speech-to-text and instant diagnosis triage">
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="new-proj-leader">Leader Name *</label>
+              <input type="text" class="form-input" id="new-proj-leader" placeholder="Your Name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="new-proj-leader-bio">Leader Skills / Role</label>
+              <input type="text" class="form-input" id="new-proj-leader-bio" placeholder="e.g. AI / Python Backend Lead">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-project')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Project Pitch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
